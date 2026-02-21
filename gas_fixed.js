@@ -22,7 +22,7 @@ var HEADERS = {
 };
 
 function doGet(e) {
-  const SECRET_KEY = "123";
+  const SECRET_KEY = "babana";
 
   if (!e.parameter.key || e.parameter.key !== SECRET_KEY) {
     return ContentService
