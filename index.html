@@ -1,29 +1,1216 @@
-BUYMA 仕入れ先比較
-v7.0
-⚙ シート接続
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUYMA 仕入れ先比較 v7</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
-通貨
-      EUR
-      USD
-      GBP
-      CHF
-    
-|
-CCレート
+/* ===== CSS変数 ===== */
+:root {
+  --bg:   #0d0d0d;
+  --sf:   #161616;
+  --sf2:  #1e1e1e;
+  --sf3:  #252525;
+  --bd:   #2c2c2c;
+  --bd2:  #383838;
+  --ac:   #c8a96e;
+  --ac2:  #e8c98e;
+  --tx:   #e0e0e0;
+  --t2:   #707070;
+  --t3:   #404040;
+  --gn:   #4caf82;
+  --bl:   #5b9bd5;
+  --rd:   #e05555;
+}
 
-通関レート
+/* ===== リセット ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-カテゴリ
-        選択してください
-      
-利益率
-最低ライン
-10%
-目標
-20%
-BUYMA手数料 7.7% 込み
-仕入れ先
-下から追加してください
+/* ===== ヘッダー ===== */
+.hd {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bd);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--sf);
+  flex-shrink: 0;
+}
+.hd-t { font-size: 13px; font-weight: 700; color: var(--ac); letter-spacing: .04em; }
+.hd-v { font-size: 10px; color: var(--t3); font-family: 'DM Mono', monospace; }
+.hd-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--t3); transition: background .3s; }
+.dot.ok  { background: var(--gn); box-shadow: 0 0 6px var(--gn); }
+.dot.err { background: var(--rd); }
+.dot.ld  { background: var(--ac); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.btn-sm {
+  background: none; border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--t2); padding: 3px 10px; font-size: 10px; cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif; transition: border-color .2s, color .2s;
+}
+.btn-sm:hover { border-color: var(--ac); color: var(--ac); }
 
-追加
-仕入れ先を選択するとカードが表示されます
+/* ===== レートバー ===== */
+.rb {
+  background: var(--sf); border-bottom: 1px solid var(--bd);
+  padding: 6px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.rb-item { display: flex; align-items: center; gap: 5px; }
+.rb label { font-size: 10px; color: var(--t2); white-space: nowrap; }
+.rb input[type=number], .rb select {
+  background: var(--sf2); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--tx); padding: 4px 7px; font-size: 12px;
+  font-family: 'DM Mono', monospace; outline: none;
+}
+.rb input[type=number] { width: 70px; text-align: right; }
+.rb input:focus, .rb select:focus { border-color: var(--ac); }
+.rb-sep { color: var(--t3); font-size: 16px; }
+
+/* ===== メインレイアウト ===== */
+.main { display: flex; flex: 1; overflow: hidden; }
+.left {
+  width: 232px; flex-shrink: 0;
+  border-right: 1px solid var(--bd);
+  overflow-y: auto; padding: 12px;
+  background: var(--sf);
+}
+.right { flex: 1; overflow: auto; padding: 14px; }
+
+/* ===== サイドバー セクション ===== */
+.sec { margin-bottom: 14px; }
+.sec-t {
+  font-size: 9px; font-weight: 700; letter-spacing: .14em;
+  color: var(--t3); text-transform: uppercase;
+  margin-bottom: 7px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--bd);
+}
+.fi {
+  background: var(--sf2); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--tx); padding: 5px 8px; font-size: 12px; outline: none;
+  width: 100%; font-family: 'Noto Sans JP', sans-serif;
+}
+.fi:focus { border-color: var(--ac); }
+select.fi option { background: #1a1a1a; }
+.fi-note {
+  font-size: 10px; color: var(--t2); margin-top: 5px;
+  padding: 4px 7px; background: var(--sf3); border-radius: 3px;
+  line-height: 1.6;
+}
+.fi-note strong { color: var(--ac); font-family: 'DM Mono', monospace; }
+
+/* ===== 利益率スライダー ===== */
+.sl { margin-bottom: 8px; }
+.sl-hd { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.sl-l { font-size: 11px; color: var(--t2); }
+.sl-v { font-size: 11px; color: var(--ac); font-family: 'DM Mono', monospace; }
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 2px;
+  background: var(--bd2); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--ac); cursor: pointer;
+}
+
+/* ===== 仕入れ先リスト ===== */
+.sup-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 6px; border-radius: 4px; cursor: pointer; margin-bottom: 2px;
+}
+.sup-item:hover { background: var(--sf2); }
+.sup-item input[type=checkbox] { accent-color: var(--ac); flex-shrink: 0; cursor: pointer; }
+.sup-item-name { font-size: 12px; flex: 1; }
+.sup-item-meta { font-size: 10px; color: var(--t3); font-family: 'DM Mono', monospace; }
+.add-row { display: flex; gap: 5px; margin-top: 8px; }
+.add-inp {
+  flex: 1; background: var(--sf2); border: 1px solid var(--bd);
+  border-radius: 4px; color: var(--tx); padding: 4px 7px;
+  font-size: 12px; outline: none; font-family: 'Noto Sans JP', sans-serif;
+}
+.add-inp:focus { border-color: var(--ac); }
+.add-btn {
+  background: var(--sf2); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--t2); padding: 4px 9px; font-size: 11px; cursor: pointer; white-space: nowrap;
+}
+.add-btn:hover { border-color: var(--ac); color: var(--ac); }
+
+/* ===== カード ===== */
+.cards-wrap { display: flex; gap: 12px; align-items: flex-start; flex-wrap: nowrap; }
+.card {
+  flex: 0 0 220px;
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: 8px; overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.card.best { border-color: var(--ac); box-shadow: 0 0 16px rgba(200,169,110,.15); }
+
+.card-hd {
+  padding: 9px 12px; background: var(--sf2);
+  display: flex; align-items: center; gap: 6px;
+}
+.card.best .card-hd { background: rgba(200,169,110,.07); }
+.card-name {
+  font-size: 12px; font-weight: 700; flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.badge {
+  font-size: 9px; font-weight: 700; background: var(--ac);
+  color: #000; border-radius: 3px; padding: 1px 5px; white-space: nowrap;
+}
+.tag {
+  font-size: 9px; border-radius: 3px; padding: 1px 5px;
+  font-family: 'DM Mono', monospace; font-weight: 700; white-space: nowrap;
+}
+.tag.ddp { color: var(--bl); border: 1px solid rgba(91,155,213,.3); }
+.tag.ddu { color: var(--ac); border: 1px solid rgba(200,169,110,.3); }
+
+/* ===== カード入力エリア ===== */
+.card-in {
+  padding: 10px 12px; border-bottom: 1px solid var(--bd);
+  background: #131313;
+}
+.card.best .card-in { background: rgba(200,169,110,.03); }
+.in-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+.in-lbl { font-size: 10px; color: var(--t3); margin-bottom: 3px; }
+.in-f {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--tx); padding: 5px 7px; font-size: 13px;
+  font-family: 'DM Mono', monospace; outline: none;
+  width: 100%; text-align: right; -webkit-appearance: none;
+}
+.in-f:focus { border-color: var(--ac); }
+.auto-disc { font-size: 10px; color: var(--t3); margin-bottom: 4px; }
+
+/* 送料セレクト（サイズ選択） */
+.ship-sel-wrap { margin-bottom: 5px; }
+.in-lbl-full { font-size: 10px; color: var(--t3); margin-bottom: 3px; }
+.ship-sel {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--tx); padding: 5px 7px; font-size: 11px; outline: none;
+  width: 100%; font-family: 'Noto Sans JP', sans-serif;
+}
+.ship-sel:focus { border-color: var(--ac); }
+.ship-sel option { background: #1a1a1a; }
+
+/* EPA選択 */
+.epa-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--t2); margin-top: 5px;
+}
+.epa-row span { flex-shrink: 0; }
+.epa-row label {
+  display: flex; align-items: center; gap: 3px; cursor: pointer;
+}
+.epa-row input[type=radio] { accent-color: var(--ac); }
+
+/* ===== カード結果 ===== */
+.card-body { padding: 10px 12px; }
+.dr {
+  display: flex; justify-content: space-between;
+  padding: 3px 0; border-bottom: 1px solid #1c1c1c; font-size: 11px;
+}
+.dr:last-child { border-bottom: none; }
+.dl { color: var(--t2); }
+.dv { font-family: 'DM Mono', monospace; }
+.card-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-top: 1px solid var(--bd2);
+  background: var(--sf2);
+}
+.card.best .card-total { background: rgba(200,169,110,.06); }
+.total-lbl { font-size: 11px; color: var(--t2); }
+.total-val { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 700; }
+.card.best .total-val { color: var(--ac); font-size: 18px; }
+.diff-row { text-align: right; padding: 3px 12px 4px; font-size: 10px; color: var(--t3); }
+.card.best .diff-row { color: var(--gn); font-weight: 700; }
+
+/* ===== 販売価格 ===== */
+.prices { padding: 9px 12px; border-top: 1px solid var(--bd); }
+.prices-t { font-size: 9px; color: var(--t3); margin-bottom: 5px; }
+.pr {
+  display: flex; justify-content: space-between;
+  padding: 3px 7px; border-radius: 3px; margin-bottom: 2px;
+  background: var(--sf2);
+}
+.pr.hi {
+  background: rgba(200,169,110,.08);
+  border: 1px solid rgba(200,169,110,.2);
+}
+.prl { font-size: 11px; color: var(--t2); }
+.prv { font-family: 'DM Mono', monospace; font-size: 12px; }
+.pr.hi .prl { color: var(--ac); }
+.pr.hi .prv { color: var(--ac2); font-weight: 700; }
+.pr.pr-sel { cursor: pointer; }
+.pr.pr-sel:hover { background: rgba(255,255,255,.06); }
+.pr.selected { background: rgba(100,180,100,.12) !important; border: 1px solid rgba(100,180,100,.3); }
+.pr.selected .prl { color: var(--gn); }
+.pr.selected .prv { color: var(--gn); font-weight: 700; }
+
+/* ===== 状態表示 ===== */
+.wait { padding: 20px 12px; text-align: center; font-size: 11px; color: var(--t3); }
+.ph   { color: var(--t3); font-size: 12px; text-align: center; padding: 60px 20px; line-height: 2.4; }
+
+/* ===== モーダル ===== */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.8); z-index: 100;
+  align-items: center; justify-content: center;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: var(--sf); border: 1px solid var(--bd2);
+  border-radius: 8px; padding: 20px; width: 480px; max-width: 92vw;
+}
+.modal-t { font-size: 13px; font-weight: 700; color: var(--ac); margin-bottom: 12px; }
+.modal-inp {
+  width: 100%; background: var(--sf2); border: 1px solid var(--bd);
+  border-radius: 4px; color: var(--tx); padding: 7px 10px;
+  font-size: 12px; font-family: 'DM Mono', monospace; outline: none; margin-bottom: 10px;
+}
+.modal-inp:focus { border-color: var(--ac); }
+.modal-note { font-size: 11px; color: var(--t2); margin-bottom: 14px; line-height: 1.7; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btns button {
+  padding: 6px 16px; border-radius: 4px; border: none;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+.mb-ok     { background: var(--ac); color: #000; }
+.mb-ok:hover { background: var(--ac2); }
+.mb-cancel { background: var(--sf2); color: var(--t2); border: 1px solid var(--bd); }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="hd">
+  <span class="hd-t">BUYMA 仕入れ先比較</span>
+  <span class="hd-v">v7.0</span>
+  <div class="hd-right">
+    <button class="btn-sm" id="gasBtn" onclick="showModal()">⚙ シート接続</button>
+    <div class="dot" id="dot" title="未接続"></div>
+  </div>
+</div>
+
+<!-- レートバー -->
+<div class="rb">
+  <div class="rb-item">
+    <label>通貨</label>
+    <select id="curSel" onchange="onCurChange()">
+      <option value="EUR">EUR</option>
+      <option value="USD">USD</option>
+      <option value="GBP">GBP</option>
+      <option value="CHF">CHF</option>
+    </select>
+  </div>
+  <span class="rb-sep">|</span>
+  <div class="rb-item">
+    <label>CCレート</label>
+    <input type="number" id="rCC" value="163" step="0.01" min="1" oninput="onRateInput()">
+  </div>
+  <div class="rb-item">
+    <label>通関レート</label>
+    <input type="number" id="rCus" value="160" step="0.01" min="1" oninput="scheduleCalc()">
+  </div>
+</div>
+
+<!-- メイン -->
+<div class="main">
+  <div class="left">
+
+    <!-- カテゴリ -->
+    <div class="sec">
+      <div class="sec-t">カテゴリ</div>
+      <select class="fi" id="catSel" onchange="onCatChange()">
+        <option value="">選択してください</option>
+      </select>
+      <div class="fi-note" id="catNote" style="display:none"></div>
+    </div>
+
+    <!-- 利益率 -->
+    <div class="sec">
+      <div class="sec-t">利益率</div>
+      <div class="sl">
+        <div class="sl-hd">
+          <span class="sl-l">最低ライン</span>
+          <span class="sl-v" id="vMin">10%</span>
+        </div>
+        <input type="range" id="slMin" min="0" max="50" value="10"
+          oninput="document.getElementById('vMin').textContent=this.value+'%'; scheduleCalc()">
+      </div>
+      <div class="sl">
+        <div class="sl-hd">
+          <span class="sl-l">目標</span>
+          <span class="sl-v" id="vTgt">20%</span>
+        </div>
+        <input type="range" id="slTgt" min="0" max="50" value="20"
+          oninput="document.getElementById('vTgt').textContent=this.value+'%'; scheduleCalc()">
+      </div>
+      <div style="font-size:10px;color:var(--t3)">BUYMA手数料 7.7% 込み</div>
+    </div>
+
+    <!-- 仕入れ先 -->
+    <div class="sec">
+      <div class="sec-t">仕入れ先</div>
+      <div id="supList">
+        <div style="font-size:11px;color:var(--t3);padding:4px 0">下から追加してください</div>
+      </div>
+      <div class="add-row">
+        <input class="add-inp" type="text" id="addName" placeholder="店名（手動追加）">
+        <button class="add-btn" onclick="addSupplierManual()">追加</button>
+      </div>
+    </div>
+
+  </div><!-- /left -->
+
+  <div class="right" id="right">
+    <div class="ph" id="ph">仕入れ先を選択するとカードが表示されます</div>
+    <div class="cards-wrap" id="cardsWrap" style="display:none"></div>
+  </div>
+</div>
+
+<!-- GASモーダル -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-t">⚙ 設定シート接続</div>
+    <input class="modal-inp" type="text" id="gasUrl"
+      placeholder="https://script.google.com/macros/s/.../exec">
+    <div class="modal-note">
+      Apps ScriptのデプロイURLを入力してください。<br>
+      接続すると仕入れ先・送料設定・割引率が自動反映されます。
+    </div>
+    <div class="modal-btns">
+      <button class="mb-cancel" onclick="hideModal()">キャンセル</button>
+      <button class="mb-ok" onclick="connectGAS()">接続する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// =====================================================
+// 定数・初期データ
+// =====================================================
+
+// 通貨別デフォルトレート
+var DEFAULT_RATES = { EUR: 163, USD: 150, GBP: 192, CHF: 170 };
+
+// カテゴリマスタ（CATS）
+// tr: EPA税率(%)、gen: 一般税率(%) ※null=「30%又は4,300円/足」
+var CATS = [
+  // バッグ
+  { id:'bag_hand',     l:'ハンドバッグ（革製）',              tr:2.2, gen:8    },
+  { id:'bag_hand_lux', l:'ハンドバッグ（革製・貴金属装飾）',  tr:4.4, gen:16   },
+  { id:'bag_hand_cl',  l:'ハンドバッグ（布・プラスチック製）', tr:2.2, gen:8    },
+  { id:'bag_sho',      l:'ショルダーバッグ（革製）',           tr:2.2, gen:8    },
+  { id:'bag_tote',     l:'トートバッグ（革製）',               tr:2.2, gen:8    },
+  { id:'bag_tote_cl',  l:'トートバッグ（布製）',               tr:2.2, gen:8    },
+  { id:'bag_back',     l:'バックパック',                       tr:2.2, gen:8    },
+  { id:'bag_clutch',   l:'クラッチバッグ（革製）',             tr:2.2, gen:8    },
+  { id:'bag_pouch',    l:'ポーチ（革製）',                     tr:2.7, gen:10   },
+  { id:'bag_pouch_cl', l:'ポーチ（布製）',                     tr:2.2, gen:8    },
+  // 財布・小物
+  { id:'wallet_lux',   l:'財布（革製・貴金属装飾付き）',       tr:4.4, gen:16   },
+  { id:'wallet',       l:'財布（革製・一般品）',               tr:2.7, gen:10   },
+  { id:'card_case',    l:'カードケース・コインケース',          tr:2.7, gen:10   },
+  { id:'key_case',     l:'キーケース',                         tr:2.7, gen:10   },
+  { id:'keyholder',    l:'キーホルダー（革製）',               tr:2.7, gen:10   },
+  { id:'keyholder_m',  l:'キーホルダー（金属製）',             tr:0,   gen:0    },
+  // 靴
+  { id:'shoes_dress',  l:'革靴（ドレス・ローファー）',          tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'shoes_ankle',  l:'革靴（くるぶし以下）',               tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'boots',        l:'ブーツ（革製）',                     tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'sneakers_lth', l:'スニーカー（革甲）',                 tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'sneakers_cl',  l:'スニーカー（布・メッシュ甲）',       tr:2.2, gen:8    },
+  { id:'sandal',       l:'サンダル',                           tr:7.4, gen:27   },
+  { id:'pumps',        l:'パンプス（革製）',                   tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  // 衣類
+  { id:'outer_lth',    l:'アウター・コート（革製）',           tr:2.7, gen:10   },
+  { id:'outer_cl',     l:'アウター・コート（布製）',           tr:0,   gen:10   },
+  { id:'jkt_lth',      l:'ジャケット（革製）',                 tr:2.7, gen:10   },
+  { id:'jkt_cl',       l:'ジャケット（布製）',                 tr:0,   gen:10   },
+  { id:'knit',         l:'トップス（ニット）',                  tr:0,   gen:10   },
+  { id:'tops',         l:'トップス（Tシャツ・カットソー）',    tr:0,   gen:10   },
+  { id:'bottoms',      l:'パンツ',                             tr:0,   gen:10   },
+  { id:'skirt',        l:'スカート',                           tr:0,   gen:10   },
+  // アクセサリー
+  { id:'belt',         l:'ベルト（革製）',                     tr:2.7, gen:10   },
+  { id:'scarf',        l:'スカーフ',                           tr:0,   gen:0    },
+  { id:'lth_acc',      l:'レザーアクセサリー',                 tr:2.7, gen:10   },
+  { id:'hat',          l:'帽子・キャップ',                     tr:0,   gen:0    },
+  { id:'sunglass',     l:'サングラス',                         tr:0,   gen:0    },
+  { id:'jewelry',      l:'ジュエリー・アクセサリー',           tr:0,   gen:0    },
+  { id:'watch',        l:'腕時計',                             tr:0,   gen:0    },
+];
+
+// =====================================================
+// アプリ状態（グローバル変数を最小化）
+// =====================================================
+var APP = {
+  rates: Object.assign({}, DEFAULT_RATES), // 通貨レート
+  suppliers: [],        // 仕入れ先リスト [{...supplierObj, key, epa}]
+  checkedKeys: new Set(), // チェック済みキー
+  shippingData: {       // GASから取得した送料データ
+    size:   [],         // [{supplier, label, cost, note}]
+    price:  [],         // [{supplier, threshold, cost, note}]
+    weight: []          // [{supplier, weightLimit, cost, note}]
+  },
+  tariffData: [],       // GAS取得の関税データ [{category,hs,material,general,epa,note}]
+  calcTimer: null,
+};
+
+// =====================================================
+// 初期化
+// =====================================================
+(function init() {
+  // カテゴリ選択肢をCATSで初期構築（GAS接続後に上書き）
+  buildCatOptions();
+
+  // GAS URLをローカルストレージから復元
+  try {
+    var saved = localStorage.getItem('buyma_gas_url_v7');
+    if (saved) document.getElementById('gasUrl').value = saved;
+  } catch(e) {}
+
+  // 送料なし計算用の架空仕入れ先（常時表示）
+  APP.suppliers.push({
+    key:           'local_noshipping',
+    name:          '送料なしで計算',
+    currency:      'EUR',
+    ddp:           false,
+    discount:      0,
+    shippingType:  'free',
+    fixedShipping: 0,
+    freeThreshold: 0,
+    epa:           true,
+  });
+  renderSupplierList();
+})();
+
+// カテゴリ選択肢を構築
+// GASデータがあればそちら優先、なければCATSフォールバック
+function buildCatOptions() {
+  var sel = document.getElementById('catSel');
+  sel.innerHTML = '<option value="">選択してください</option>';
+
+  if (APP.tariffData.length > 0) {
+    // GASデータから構築（valueはカテゴリ名をそのまま使用）
+    APP.tariffData.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.category;
+      opt.textContent = t.category;
+      sel.appendChild(opt);
+    });
+  } else {
+    // CATSからフォールバック（valueはインデックス）
+    CATS.forEach(function(c, i) {
+      var opt = document.createElement('option');
+      opt.value = 'cats_' + i;
+      opt.textContent = c.l;
+      sel.appendChild(opt);
+    });
+  }
+  // 選択リセット
+  onCatChange();
+}
+
+// =====================================================
+// GAS接続
+// =====================================================
+function showModal() { document.getElementById('modal').classList.add('show'); }
+function hideModal() { document.getElementById('modal').classList.remove('show'); }
+
+async function connectGAS() {
+  var url = document.getElementById('gasUrl').value.trim();
+  if (!url) { alert('URLを入力してください'); return; }
+
+  var dot = document.getElementById('dot');
+  dot.className = 'dot ld';
+
+  try {
+    var res  = await fetch(url + '?action=getSettings');
+    var json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message || 'エラー');
+
+    var data = json.data;
+
+    // 為替レート更新
+    if (data.exchangeRates) {
+      Object.keys(data.exchangeRates).forEach(function(k) {
+        APP.rates[k] = data.exchangeRates[k];
+      });
+    }
+
+    // 送料データ保存（GASの構造をそのまま使用）
+    if (data.shippingDetails) {
+      APP.shippingData.size   = data.shippingDetails.size   || [];
+      APP.shippingData.price  = data.shippingDetails.price  || [];
+      // weightはlabelがない場合、weightLimitから自動生成
+      APP.shippingData.weight = (data.shippingDetails.weight || []).map(function(r) {
+        if (!r.label && r.weightLimit !== undefined && r.weightLimit !== '') {
+          r.label = String(r.weightLimit) + ' EUR以下';
+        }
+        if (!r.label) r.label = String(r.weightLimit || r.cost || '?');
+        return r;
+      });
+    }
+
+    // 関税データ保存・カテゴリ選択肢を再構築
+    if (data.tariff && data.tariff.length > 0) {
+      // GASがセルの実数値（0.08など）を返す場合は100倍して%に変換
+      APP.tariffData = data.tariff.map(function(t) {
+        var epa = parseFloat(t.epa);
+        var gen = parseFloat(t.general);
+        // セルが%書式の場合、実数値は0.022など小数で来る → 100倍して%に変換
+        if (!isNaN(epa) && epa > 0 && epa < 1) epa = Math.round(epa * 1000) / 10;
+        if (!isNaN(gen) && gen > 0 && gen < 1) gen = Math.round(gen * 1000) / 10;
+        var cat = String(t.category || '').trim();
+        var mat = String(t.material || '').trim();
+        // カテゴリ名が同じ行が複数ある場合、素材区分を付加して区別
+        var label = (cat && mat) ? cat + '（' + mat + '）' : cat;
+        return {
+          category: label,
+          epa:      isNaN(epa) ? 0 : epa,
+          general:  isNaN(gen) ? null : gen,
+          note:     String(t.note || '')
+        };
+      }).filter(function(t) {
+        // カテゴリ名があり、かつEPA・一般のどちらかに有効な値がある行のみ
+        return t.category && (t.epa !== 0 || t.general !== null);
+      });
+      buildCatOptions();
+    }
+
+    // 仕入れ先を追加（重複除去）
+    if (data.suppliers && data.suppliers.length > 0) {
+      data.suppliers.forEach(function(sup) {
+        var exists = APP.suppliers.find(function(s) { return s.key === 'g_' + sup.name; });
+        if (exists) {
+          // 既存はepa設定を保持しつつ他を更新
+          var epa = exists.epa;
+          Object.assign(exists, buildSupplierObj(sup, exists.key));
+          exists.epa = epa;
+        } else {
+          APP.suppliers.push(buildSupplierObj(sup, 'g_' + sup.name));
+        }
+      });
+      renderSupplierList();
+    }
+
+    dot.className = 'dot ok';
+    dot.title = '接続済み';
+    try { localStorage.setItem('buyma_gas_url_v7', url); } catch(e) {}
+    hideModal();
+
+    // 現在選択中の通貨のレートを反映
+    onCurChange();
+
+  } catch(ex) {
+    dot.className = 'dot err';
+    alert('接続失敗\n' + ex.message);
+  }
+}
+
+// GASのsupオブジェクトをAPP.suppliersの形式に変換
+function buildSupplierObj(sup, key) {
+  return {
+    key:            key,
+    name:           String(sup.name || ''),
+    currency:       String(sup.currency || 'EUR').toUpperCase(),
+    ddp:            Boolean(sup.ddp),
+    discount:       parseFloat(sup.discount) || 0,
+    shippingType:   String(sup.shippingType || 'fixed').toLowerCase(),
+    fixedShipping:  parseFloat(sup.fixedShipping) || 0,
+    freeThreshold:  parseFloat(sup.freeThreshold) || 999999,
+    epa:            true, // デフォルトEPA適用
+  };
+}
+
+// =====================================================
+// カテゴリ
+// =====================================================
+
+// 選択中のカテゴリデータを返す
+// GASデータ優先、なければCATSフォールバック
+function getSelectedCat() {
+  var val = document.getElementById('catSel').value;
+  if (!val) return null;
+
+  if (APP.tariffData.length > 0) {
+    // GASデータ：valueはカテゴリ名
+    return APP.tariffData.find(function(t) { return t.category === val; }) || null;
+  } else {
+    // CATSフォールバック：valueは'cats_N'
+    var idx = parseInt(val.replace('cats_', ''), 10);
+    var c = CATS[idx];
+    if (!c) return null;
+    // CATSをGASデータ形式に変換して返す
+    return { category: c.l, epa: c.tr, general: c.gen, note: c.note || '' };
+  }
+}
+
+function onCatChange() {
+  var note = document.getElementById('catNote');
+  var cat = getSelectedCat();
+
+  if (!cat) {
+    note.style.display = 'none';
+    scheduleCalc();
+    return;
+  }
+
+  var epaStr = cat.epa === 0    ? '無税' : cat.epa + '%';
+  var genStr = cat.general === null ? '30%又は4,300円/足'
+             : cat.general === 0   ? '無税'
+             : cat.general + '%';
+
+  note.innerHTML = 'EPA: <strong>' + epaStr + '</strong>　一般: <strong>' + genStr + '</strong>'
+    + (cat.note ? '<br><span style="font-size:10px;color:var(--t3)">' + cat.note + '</span>' : '');
+  note.style.display = 'block';
+  scheduleCalc();
+}
+
+// 仕入れ先ごとの関税率を返す（%数値 or null）
+// null = 一般30%/4,300円/足（計算側でハンドリング）
+function getTariffRate(sup) {
+  var cat = getSelectedCat();
+  if (!cat) return null;
+  if (sup.epa) return cat.epa;
+  return cat.general; // null の場合は30%/4300円
+}
+
+// =====================================================
+// 通貨・レート
+// =====================================================
+function onCurChange() {
+  var cur = document.getElementById('curSel').value;
+  var r = APP.rates[cur] || DEFAULT_RATES[cur] || 163;
+  document.getElementById('rCC').value  = r;
+  document.getElementById('rCus').value = Math.round((r - 3) * 100) / 100;
+  scheduleCalc();
+}
+
+function onRateInput() {
+  var rCC = parseFloat(document.getElementById('rCC').value) || 163;
+  // CCレート変更時に通関レートも自動更新（-3円）
+  document.getElementById('rCus').value = Math.round((rCC - 3) * 100) / 100;
+  scheduleCalc();
+}
+
+// =====================================================
+// 仕入れ先管理
+// =====================================================
+function addSupplierManual() {
+  var name = document.getElementById('addName').value.trim();
+  if (!name) return;
+  if (APP.suppliers.find(function(s) { return s.name === name; })) {
+    alert('同じ名前の仕入れ先が既にあります');
+    return;
+  }
+  var cur = document.getElementById('curSel').value;
+  var key = 'm_' + Date.now();
+  APP.suppliers.push({
+    key:           key,
+    name:          name,
+    currency:      cur,
+    ddp:           false,
+    discount:      0,
+    shippingType:  'fixed',
+    fixedShipping: 0,
+    freeThreshold: 999999,
+    epa:           true,
+  });
+  document.getElementById('addName').value = '';
+  renderSupplierList();
+}
+
+function renderSupplierList() {
+  var list = document.getElementById('supList');
+  if (APP.suppliers.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:4px 0">下から追加してください</div>';
+    return;
+  }
+  list.innerHTML = '';
+  APP.suppliers.forEach(function(sup) {
+    var lbl = document.createElement('label');
+    lbl.className = 'sup-item';
+
+    var chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = APP.checkedKeys.has(sup.key);
+    chk.addEventListener('change', function() {
+      if (this.checked) APP.checkedKeys.add(sup.key);
+      else              APP.checkedKeys.delete(sup.key);
+      syncCards();
+    });
+
+    var nm = document.createElement('span');
+    nm.className = 'sup-item-name';
+    nm.textContent = sup.name;
+
+    var mt = document.createElement('span');
+    mt.className = 'sup-item-meta';
+    mt.textContent = (sup.ddp ? 'DDP' : 'DDU') + ' · ' + sup.currency;
+
+    lbl.appendChild(chk);
+    lbl.appendChild(nm);
+    lbl.appendChild(mt);
+    list.appendChild(lbl);
+  });
+}
+
+function getSupplierByKey(key) {
+  return APP.suppliers.find(function(s) { return s.key === key; }) || null;
+}
+
+// =====================================================
+// カード管理（作ったカードは壊さない）
+// =====================================================
+function syncCards() {
+  var wrap = document.getElementById('cardsWrap');
+  var ph   = document.getElementById('ph');
+  var keys = Array.from(APP.checkedKeys);
+
+  if (keys.length === 0) {
+    wrap.style.display = 'none';
+    ph.style.display = 'block';
+    // 既存カードを全削除
+    wrap.innerHTML = '';
+    scheduleCalc();
+    return;
+  }
+
+  wrap.style.display = 'flex';
+  ph.style.display = 'none';
+
+  // 削除されたカードを除去
+  Array.from(wrap.children).forEach(function(el) {
+    var k = el.dataset.key;
+    if (k && !APP.checkedKeys.has(k)) el.remove();
+  });
+
+  // 新しいカードを追加
+  keys.forEach(function(key) {
+    if (!document.getElementById('card_' + key)) {
+      var sup = getSupplierByKey(key);
+      if (!sup) return;
+      wrap.appendChild(createCard(sup));
+    }
+  });
+
+  scheduleCalc();
+}
+
+// =====================================================
+// カード生成
+// =====================================================
+function createCard(sup) {
+  var key = sup.key;
+
+  var card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'card_' + key;
+  card.dataset.key = key;
+
+  // ---- ヘッダー ----
+  var hd = document.createElement('div');
+  hd.className = 'card-hd';
+  hd.id = 'hd_' + key;
+  hd.innerHTML = '<span class="card-name">' + escHtml(sup.name) + '</span>'
+    + '<span class="tag ' + (sup.ddp ? 'ddp' : 'ddu') + '">' + (sup.ddp ? 'DDP' : 'DDU') + '</span>';
+  card.appendChild(hd);
+
+  // ---- 入力エリア ----
+  var inp = document.createElement('div');
+  inp.className = 'card-in';
+
+  // 価格・追加割引グリッド
+  var ig = document.createElement('div');
+  ig.className = 'in-grid';
+
+  var pWrap = document.createElement('div');
+  var pLbl = document.createElement('div');
+  pLbl.className = 'in-lbl';
+  pLbl.textContent = '仕入れ価格（' + sup.currency + '）';
+  var pInp = document.createElement('input');
+  pInp.className = 'in-f';
+  pInp.type = 'number';
+  pInp.id = 'p_' + key;
+  pInp.placeholder = '0';
+  pInp.step = '0.01';
+  pInp.min = '0';
+  pInp.addEventListener('input', scheduleCalc);
+  pWrap.appendChild(pLbl);
+  pWrap.appendChild(pInp);
+
+  var dWrap = document.createElement('div');
+  var dLbl = document.createElement('div');
+  dLbl.className = 'in-lbl';
+  dLbl.textContent = '追加割引 (%)';
+  var dInp = document.createElement('input');
+  dInp.className = 'in-f';
+  dInp.type = 'number';
+  dInp.id = 'd_' + key;
+  dInp.placeholder = '0';
+  dInp.step = '0.5';
+  dInp.min = '0';
+  dInp.max = '100';
+  dInp.addEventListener('input', scheduleCalc);
+  dWrap.appendChild(dLbl);
+  dWrap.appendChild(dInp);
+
+  ig.appendChild(pWrap);
+  ig.appendChild(dWrap);
+  inp.appendChild(ig);
+
+  // 店舗割引表示
+  if (sup.discount > 0) {
+    var ad = document.createElement('div');
+    ad.className = 'auto-disc';
+    ad.textContent = '店舗割引 ' + sup.discount + '% 自動適用';
+    inp.appendChild(ad);
+  }
+
+  // 送料セレクト（size/weight型のみ）
+  if (sup.shippingType === 'size' || sup.shippingType === 'weight') {
+    var swWrap = document.createElement('div');
+    swWrap.className = 'ship-sel-wrap';
+
+    var swLbl = document.createElement('div');
+    swLbl.className = 'in-lbl-full';
+    swLbl.textContent = sup.shippingType === 'size' ? '箱サイズ' : '重量区分';
+
+    var swSel = document.createElement('select');
+    swSel.className = 'ship-sel';
+    swSel.id = 'sw_' + key;
+    swSel.addEventListener('change', scheduleCalc);
+
+    // 選択肢を構築
+    var rows = getShippingRows(sup);
+    var defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- 選択 --';
+    swSel.appendChild(defaultOpt);
+    rows.forEach(function(row) {
+      var opt = document.createElement('option');
+      // labelをそのままvalueに（シートと完全一致）
+      opt.value = row.label;
+      // weight型はweightLimit情報も表示
+      var dispLabel = row.label;
+      if (sup.shippingType === 'weight' && row.weightLimit !== undefined && row.weightLimit !== '') {
+        dispLabel = row.label + '（' + row.weightLimit + 'kg以下）';
+      }
+      opt.textContent = dispLabel + '  ' + row.cost + ' ' + sup.currency;
+      if (row.note) opt.textContent += '  (' + row.note + ')';
+      swSel.appendChild(opt);
+    });
+
+    swWrap.appendChild(swLbl);
+    swWrap.appendChild(swSel);
+    inp.appendChild(swWrap);
+  }
+
+  // EPA選択
+  var epaRow = document.createElement('div');
+  epaRow.className = 'epa-row';
+  epaRow.innerHTML = '<span>関税:</span>'
+    + '<label><input type="radio" name="epa_' + key + '" value="epa" checked'
+    + ' onchange="setEpa(\'' + key + '\', true)"> EPA適用</label>'
+    + '<label><input type="radio" name="epa_' + key + '" value="gen"'
+    + ' onchange="setEpa(\'' + key + '\', false)"> 一般税率</label>';
+  inp.appendChild(epaRow);
+
+  card.appendChild(inp);
+
+  // ---- 結果エリア ----
+  var res = document.createElement('div');
+  res.className = 'card-res';
+  res.id = 'res_' + key;
+  res.innerHTML = '<div class="wait">価格を入力してください</div>';
+  card.appendChild(res);
+
+  return card;
+}
+
+// 仕入れ先の送料行をAPP.shippingDataから取得
+function getShippingRows(sup) {
+  var type = sup.shippingType;
+  if (type === 'size') {
+    return APP.shippingData.size.filter(function(r) { return r.supplier === sup.name; });
+  }
+  if (type === 'weight') {
+    return APP.shippingData.weight.filter(function(r) { return r.supplier === sup.name; });
+  }
+  return [];
+}
+
+function setEpa(key, val) {
+  var sup = getSupplierByKey(key);
+  if (sup) sup.epa = val;
+  scheduleCalc();
+}
+
+// =====================================================
+// 送料計算（仕入れ先ごと）
+// =====================================================
+function calcShipping(sup, rawPrice, rCC) {
+  var type = sup.shippingType;
+
+  // DDP：送料は価格に込み（0で返す）
+  if (sup.ddp) return { cost: 0, label: 'DDP込み' };
+
+  if (type === 'free') {
+    return { cost: 0, label: '無料' };
+  }
+
+  if (type === 'fixed') {
+    var fc = sup.fixedShipping || 0;
+    return { cost: fc, label: fc > 0 ? fc + ' ' + sup.currency : '無料' };
+  }
+
+  if (type === 'price') {
+    // 金額別：APP.shippingData.priceからthresholdを超えた最初の行
+    var rows = APP.shippingData.price
+      .filter(function(r) { return r.supplier === sup.name; })
+      .sort(function(a, b) { return a.threshold - b.threshold; });
+
+    var matched = rows.find(function(r) { return rawPrice < r.threshold; });
+    if (!matched && rows.length > 0) matched = rows[rows.length - 1];
+    if (!matched) return { cost: 0, label: '(設定なし)' };
+
+    var lbl = matched.cost === 0
+      ? '無料（' + matched.threshold + sup.currency + '以上）'
+      : matched.cost + ' ' + sup.currency;
+    return { cost: matched.cost, label: lbl };
+  }
+
+  if (type === 'size' || type === 'weight') {
+    // 選択セレクトから送料を取得
+    var selEl = document.getElementById('sw_' + sup.key);
+    if (!selEl || selEl.value === '') return { cost: 0, label: '(未選択)' };
+
+    var selectedLabel = selEl.value;
+    var allRows = type === 'size' ? APP.shippingData.size : APP.shippingData.weight;
+    var row = allRows.find(function(r) {
+      return r.supplier === sup.name && r.label === selectedLabel;
+    });
+    if (!row) return { cost: 0, label: '(不明)' };
+    return { cost: row.cost, label: selectedLabel + ': ' + row.cost + ' ' + sup.currency };
+  }
+
+  return { cost: 0, label: '(設定なし)' };
+}
+
+// =====================================================
+// 計算
+// =====================================================
+function scheduleCalc() {
+  clearTimeout(APP.calcTimer);
+  APP.calcTimer = setTimeout(runCalc, 100);
+}
+
+function runCalc() {
+  var rCC     = parseFloat(document.getElementById('rCC').value)  || 163;
+  var rCus    = parseFloat(document.getElementById('rCus').value) || rCC;
+  var profMin = (parseInt(document.getElementById('slMin').value, 10) || 10) / 100;
+  var profTgt = (parseInt(document.getElementById('slTgt').value, 10) || 20) / 100;
+  var BUYMA_FEE = 0.077;
+  var DOMESTIC_SHIP = 1000;
+
+  var keys = Array.from(APP.checkedKeys);
+  if (keys.length === 0) return;
+
+  function fmt(n) { return '¥' + Math.round(n).toLocaleString(); }
+  function sellPrice(total, profit) {
+    return Math.ceil((total / (1 - profit)) / (1 - BUYMA_FEE) / 100) * 100;
+  }
+
+  // 各仕入れ先の計算
+  var results = keys.map(function(key) {
+    var sup = getSupplierByKey(key);
+    if (!sup) return null;
+
+    var pEl = document.getElementById('p_' + key);
+    var dEl = document.getElementById('d_' + key);
+    var rawP   = pEl ? (parseFloat(pEl.value) || 0) : 0;
+    var extraD = dEl ? (parseFloat(dEl.value) || 0) : 0;
+
+    if (rawP <= 0) return { key: key, skip: true };
+
+    // 価格計算
+    var discRate = sup.discount / 100;
+    var netP     = rawP * (1 - discRate) * (1 - extraD / 100);
+    // JPY通貨の場合は為替換算しない（レート=1）
+    var isJPY    = sup.currency === 'JPY';
+    var fxCC     = isJPY ? 1 : rCC;
+    var fxCus    = isJPY ? 1 : rCus;
+    var netJPY   = netP * fxCC;
+
+    // 送料
+    var ship = calcShipping(sup, rawP, rCC);
+    var shipJPY = ship.cost * fxCC;
+
+    // 関税・消費税
+    var tariffRate = getTariffRate(sup); // null or 数値
+    var tariffJPY  = 0;
+    var cTax       = 0;
+    var isDDP      = sup.ddp;
+
+    if (isDDP) {
+      cTax = netJPY * 0.1;
+    } else if (tariffRate !== null) {
+      var base  = netP * fxCus;
+      tariffJPY = base * (tariffRate / 100);
+      cTax      = (base + tariffJPY) * 0.1;
+    } else {
+      // null = 一般30%/4300円（どちらか高い方）
+      var base2  = netP * fxCus;
+      tariffJPY  = Math.max(base2 * 0.30, 4300);
+      cTax       = (base2 + tariffJPY) * 0.1;
+    }
+
+    var total = netJPY + shipJPY + tariffJPY + cTax + DOMESTIC_SHIP;
+
+    return {
+      key:        key,
+      skip:       false,
+      sup:        sup,
+      rawP:       rawP,
+      discPct:    discRate * 100,
+      extraD:     extraD,
+      netP:       netP,
+      netJPY:     netJPY,
+      ship:       ship,
+      shipJPY:    shipJPY,
+      isDDP:      isDDP,
+      tariffRate: tariffRate,
+      tariffJPY:  tariffJPY,
+      cTax:       cTax,
+      total:      total,
+      pMin:       sellPrice(total, profMin),
+      pTgt:       sellPrice(total, profTgt),
+      p25:        sellPrice(total, 0.25),
+      p30:        sellPrice(total, 0.30),
+      feeMin:     Math.round(sellPrice(total, profMin) * BUYMA_FEE),
+      profitMin:  Math.round(sellPrice(total, profMin) * (1 - BUYMA_FEE) - total),
+      feeTgt:     Math.round(sellPrice(total, profTgt) * BUYMA_FEE),
+      profitTgt:  Math.round(sellPrice(total, profTgt) * (1 - BUYMA_FEE) - total),
+      fee25:      Math.round(sellPrice(total, 0.25) * BUYMA_FEE),
+      profit25:   Math.round(sellPrice(total, 0.25) * (1 - BUYMA_FEE) - total),
+      fee30:      Math.round(sellPrice(total, 0.30) * BUYMA_FEE),
+      profit30:   Math.round(sellPrice(total, 0.30) * (1 - BUYMA_FEE) - total),
+    };
+  }).filter(Boolean);
+
+  var valid   = results.filter(function(r) { return !r.skip; });
+  var minTotal = valid.length > 0
+    ? Math.min.apply(null, valid.map(function(r) { return r.total; }))
+    : null;
+
+  // カード更新
+  results.forEach(function(r) {
+    var hd  = document.getElementById('hd_'  + r.key);
+    var res = document.getElementById('res_' + r.key);
+    var card = document.getElementById('card_' + r.key);
+    if (!res || !card) return;
+
+    if (r.skip) {
+      card.className = 'card';
+      res.innerHTML  = '<div class="wait">価格を入力してください</div>';
+      return;
+    }
+
+    var isBest = minTotal !== null && Math.abs(r.total - minTotal) < 1;
+    var diff   = minTotal !== null ? r.total - minTotal : 0;
+
+    card.className = 'card' + (isBest ? ' best' : '');
+
+    hd.innerHTML = '<span class="card-name">' + escHtml(r.sup.name) + '</span>'
+      + (isBest
+          ? '<span class="badge">★ 最安</span>'
+          : '<span class="tag ' + (r.isDDP ? 'ddp' : 'ddu') + '">' + (r.isDDP ? 'DDP' : 'DDU') + '</span>');
+
+    var tariffLabel = r.isDDP ? '（DDP）'
+      : r.tariffRate !== null ? '（' + r.tariffRate + '%）'
+      : '（一般30%/4,300円）';
+
+    res.innerHTML =
+      '<div class="card-body">'
+      + row('割引後価格', r.netP.toFixed(2) + ' ' + r.sup.currency)
+      + (r.discPct > 0 ? row('店舗割引', '-' + r.discPct.toFixed(1) + '%') : '')
+      + (r.extraD  > 0 ? row('追加割引', '-' + r.extraD.toFixed(1)  + '%') : '')
+      + row('円換算 @' + rCC, fmt(r.netJPY))
+      + row('海外送料', r.ship.label + (r.shipJPY > 0 ? '　' + fmt(r.shipJPY) : ''))
+      + row('関税' + tariffLabel, r.isDDP ? '込み' : fmt(r.tariffJPY))
+      + row('消費税 10%', fmt(r.cTax))
+      + row('国内送料', fmt(DOMESTIC_SHIP))
+      + '</div>'
+      + '<div class="card-total"><span class="total-lbl">総原価</span><span class="total-val">' + fmt(r.total) + '</span></div>'
+      + '<div class="diff-row">' + (isBest ? '★ 最安値' : valid.length > 1 ? '＋' + fmt(diff) + ' 高い' : '') + '</div>'
+      + '<div class="prices">'
+      + '<div class="prices-t">推奨販売価格（BUYMA 7.7% 込み）</div>'
+      + prRow('最低（' + Math.round(profMin * 100) + '%）', fmt(r.pMin), false, key, r.pMin, r.feeMin, r.profitMin)
+      + prRow('目標（' + Math.round(profTgt * 100) + '%）', fmt(r.pTgt), true, key, r.pTgt, r.feeTgt, r.profitTgt)
+      + prRow('25%', fmt(r.p25), false, key, r.p25, r.fee25, r.profit25)
+      + prRow('30%', fmt(r.p30), false, key, r.p30, r.fee30, r.profit30)
+      + '<div id="sel_' + key + '" class="dr" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px;display:none"><span class="dl" id="sel_lbl_' + key + '"></span><span class="dv"></span></div>'
+      + '<div id="fee_' + key + '" class="dr" style="display:none"><span class="dl">BUYMA手数料</span><span class="dv" id="fee_val_' + key + '"></span></div>'
+      + '<div id="prf_' + key + '" class="dr" style="display:none"><span class="dl">利益額</span><span class="dv" id="prf_val_' + key + '" style="color:var(--gn)"></span></div>'
+      + '</div>';
+  });
+}
+
+function selectPrice(el) {
+  var key    = el.getAttribute('data-key');
+  var price  = parseInt(el.getAttribute('data-price'),10);
+  var fee    = parseInt(el.getAttribute('data-fee'),10);
+  var profit = parseInt(el.getAttribute('data-profit'),10);
+  if (!key) return;
+  // 同じカードの選択済みをリセット
+  var card = el.closest('.prices');
+  card.querySelectorAll('.pr.selected').forEach(function(e){ e.classList.remove('selected'); });
+  el.classList.add('selected');
+  // 表示更新
+  var feeDiv = document.getElementById('fee_' + key);
+  var prfDiv = document.getElementById('prf_' + key);
+  if (feeDiv) { feeDiv.style.display=''; document.getElementById('fee_val_' + key).textContent = fmt(fee); }
+  if (prfDiv) { prfDiv.style.display=''; document.getElementById('prf_val_' + key).textContent = fmt(profit); }
+}
+
+function row(label, val) {
+  return '<div class="dr"><span class="dl">' + label + '</span><span class="dv">' + val + '</span></div>';
+}
+function prRow(label, val, hi, key, price, fee, profit) {
+  var cls = 'pr pr-sel' + (hi ? ' hi' : '');
+  var data = key ? ' data-key="' + key + '" data-price="' + price + '" data-fee="' + fee + '" data-profit="' + profit + '"' : '';
+  return '<div class="' + cls + '"' + data + '><span class="prl">' + label + '</span><span class="prv">' + val + '</span></div>';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 価格行クリック（イベント委任）
+document.addEventListener('click', function(e) {
+  var el = e.target.closest('.pr-sel');
+  if (el && el.getAttribute('data-key')) selectPrice(el);
+});
+</script>
+</body>
+</html>
