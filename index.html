@@ -846,8 +846,11 @@ async function loadTransit() {
   try {
     var r = await gasGet({action:'getList', all:'true', grouped:'true'});
     if (r.status !== 'ok') throw new Error(r.message);
-    // 未入荷（入荷日なし）のものを抽出 → 全件から在庫中のものを表示
-    renderTransit(r.data);
+    // 入荷日が空欄のものだけ輸送中として抽出
+    var transit = (r.data || []).filter(function(g) {
+      return !g.arrivalDate || String(g.arrivalDate).trim() === '';
+    });
+    renderTransit(transit);
   } catch(e) { toast('取得失敗', true); }
 }
 
