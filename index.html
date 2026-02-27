@@ -1166,32 +1166,30 @@ function runCalc() {
       + '<div class="diff-row">' + (isBest ? '★ 最安値' : valid.length > 1 ? '＋' + fmt(diff) + ' 高い' : '') + '</div>'
       + '<div class="prices">'
       + '<div class="prices-t">推奨販売価格（BUYMA 7.7% 込み）</div>'
-      + prRow('最低（' + Math.round(profMin * 100) + '%）', fmt(r.pMin), false, key, r.pMin, r.feeMin, r.profitMin)
-      + prRow('目標（' + Math.round(profTgt * 100) + '%）', fmt(r.pTgt), true, key, r.pTgt, r.feeTgt, r.profitTgt)
-      + prRow('25%', fmt(r.p25), false, key, r.p25, r.fee25, r.profit25)
-      + prRow('30%', fmt(r.p30), false, key, r.p30, r.fee30, r.profit30)
-      + '<div id="sel_' + key + '" class="dr" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px;display:none"><span class="dl" id="sel_lbl_' + key + '"></span><span class="dv"></span></div>'
-      + '<div id="fee_' + key + '" class="dr" style="display:none"><span class="dl">BUYMA手数料</span><span class="dv" id="fee_val_' + key + '"></span></div>'
-      + '<div id="prf_' + key + '" class="dr" style="display:none"><span class="dl">利益額</span><span class="dv" id="prf_val_' + key + '" style="color:var(--gn)"></span></div>'
+      + prRow('最低（' + Math.round(profMin * 100) + '%）', fmt(r.pMin), false, r.key, r.pMin, r.feeMin, r.profitMin)
+      + prRow('目標（' + Math.round(profTgt * 100) + '%）', fmt(r.pTgt), true, r.key, r.pTgt, r.feeTgt, r.profitTgt)
+      + prRow('25%', fmt(r.p25), false, r.key, r.p25, r.fee25, r.profit25)
+      + prRow('30%', fmt(r.p30), false, r.key, r.p30, r.fee30, r.profit30)
+      + '<div class="dr fee-row" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px;display:none"><span class="dl">BUYMA手数料</span><span class="dv fee-val"></span></div>'
+      + '<div class="dr prf-row" style="display:none"><span class="dl">利益額</span><span class="dv prf-val" style="color:var(--gn)"></span></div>'
       + '</div>';
   });
 }
 
 function selectPrice(el) {
-  var key    = el.getAttribute('data-key');
-  var price  = parseInt(el.getAttribute('data-price'),10);
   var fee    = parseInt(el.getAttribute('data-fee'),10);
   var profit = parseInt(el.getAttribute('data-profit'),10);
-  if (!key) return;
+  if (isNaN(fee)) return;
+  function fmt2(n){ return '¥' + Math.round(n).toLocaleString(); }
   // 同じカードの選択済みをリセット
-  var card = el.closest('.prices');
-  card.querySelectorAll('.pr.selected').forEach(function(e){ e.classList.remove('selected'); });
+  var prices = el.closest('.prices');
+  prices.querySelectorAll('.pr.selected').forEach(function(e){ e.classList.remove('selected'); });
   el.classList.add('selected');
-  // 表示更新
-  var feeDiv = document.getElementById('fee_' + key);
-  var prfDiv = document.getElementById('prf_' + key);
-  if (feeDiv) { feeDiv.style.display=''; document.getElementById('fee_val_' + key).textContent = fmt(fee); }
-  if (prfDiv) { prfDiv.style.display=''; document.getElementById('prf_val_' + key).textContent = fmt(profit); }
+  // fee/prf行を更新
+  var feeRow = prices.querySelector('.fee-row');
+  var prfRow = prices.querySelector('.prf-row');
+  if (feeRow) { feeRow.style.display=''; feeRow.querySelector('.fee-val').textContent = fmt2(fee); }
+  if (prfRow) { prfRow.style.display=''; prfRow.querySelector('.prf-val').textContent = fmt2(profit); }
 }
 
 function row(label, val) {
@@ -1199,7 +1197,7 @@ function row(label, val) {
 }
 function prRow(label, val, hi, key, price, fee, profit) {
   var cls = 'pr pr-sel' + (hi ? ' hi' : '');
-  var data = key ? ' data-key="' + key + '" data-price="' + price + '" data-fee="' + fee + '" data-profit="' + profit + '"' : '';
+  var data = key ? ' data-fee="' + fee + '" data-profit="' + profit + '"' : '';
   return '<div class="' + cls + '"' + data + '><span class="prl">' + label + '</span><span class="prv">' + val + '</span></div>';
 }
 function escHtml(s) {
