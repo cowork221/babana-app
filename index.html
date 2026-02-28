@@ -468,7 +468,7 @@ async function gasGet(params, url) {
 async function loadSummary() {
   if (!GAS_URL) return;
   try {
-    var r = await gasGet({action:'summary'});
+    var r = await gasGet({action:'getSummary'});
     if (r.status === 'ok') {
       var d = r.data;
       document.getElementById('sumStock').textContent = d.totalStock || 0;
