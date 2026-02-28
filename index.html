@@ -474,6 +474,17 @@ async function loadSummary() {
       document.getElementById('sumStock').textContent = d.totalStock || 0;
       document.getElementById('sumCost').textContent = d.stockValue ? '¥'+(d.stockValue/10000).toFixed(1)+'万' : '—';
       document.getElementById('sumTransit').textContent = d.inTransit || 0;
+      document.getElementById('sumToday').textContent = d.todayShip || 0;
+      if (d.transitItems && d.transitItems.length > 0) {
+        document.getElementById('transitList').innerHTML = d.transitItems.map(function(g) {
+          return '<div class="oi-sm" onclick="showDetail('+g.orderCode+')" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--bd)">'
+            +'<span style="font-size:12px;font-weight:700">'+g.brand+' '+g.name+'</span>'
+            +'<span style="font-size:11px;color:var(--t3);margin-left:8px">'+g.supplier+'</span>'
+            +'</div>';
+        }).join('');
+      } else {
+        document.getElementById('transitList').innerHTML = '<div style="color:var(--t3);font-size:12px">輸送中の注文はありません</div>';
+      }
     }
   } catch(e) {}
 }
