@@ -859,7 +859,6 @@ function renderTransit(data) {
     return;
   }
   el.innerHTML = data.map(function(g) {
-    var totalQty = g.variants ? g.variants.reduce(function(s,v){return s+v.currentQty;},0) : 0;
     return '<div class="order-item" onclick="showDetail('+g.orderCode+')" style="cursor:pointer">'
       +'<div class="oi-hd">'
         +'<div>'
@@ -867,7 +866,7 @@ function renderTransit(data) {
           +'<div class="oi-name">'+g.brand+' '+g.name+'</div>'
           +'<div class="oi-supplier">'+( g.supplier||'' )+'</div>'
         +'</div>'
-        +'<span class="si-badge in">▲'+totalQty+'点</span>'
+        +'<span class="si-badge" style="background:rgba(200,150,50,.15);color:#c89632">輸送中</span>'
       +'</div>'
       +'<div style="font-size:11px;color:var(--t3);margin-top:4px">タップして詳細・チェックリスト →</div>'
     +'</div>';
