@@ -885,7 +885,7 @@ async function showDetail(code) {
     if (r.status !== 'ok') throw new Error(r.message);
     currentDetail = r.data;
     renderDetail(r.data);
-  } catch(e) { toast('取得失敗: '+e.message, true); }
+  } catch(e) { alert('エラー: '+e.message); }
 }
 
 function renderDetail(d) {
