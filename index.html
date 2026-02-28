@@ -472,7 +472,7 @@ async function loadSummary() {
     if (r.status === 'ok') {
       var d = r.data;
       document.getElementById('sumStock').textContent = d.totalStock || 0;
-      document.getElementById('sumCost').textContent = d.totalCost ? '¥'+(d.totalCost/10000).toFixed(1)+'万' : '—';
+      document.getElementById('sumCost').textContent = d.stockValue ? '¥'+(d.stockValue/10000).toFixed(1)+'万' : '—';
       document.getElementById('sumTransit').textContent = d.inTransit || 0;
     }
   } catch(e) {}
