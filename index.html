@@ -425,6 +425,8 @@ function showPage(id) {
   document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
   document.querySelector('[data-page="'+id+'"]').classList.add('active');
+  if (id === 'transit') loadTransit();
+  if (id === 'stock') loadStock();
 }
 
 // ===== GAS接続 =====
@@ -844,13 +846,9 @@ async function loadTransit() {
   var el = document.getElementById('transitListFull');
   el.innerHTML = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:30px">読み込み中...</div>';
   try {
-    var r = await gasGet({action:'getList', all:'true', grouped:'true'});
+    var r = await gasGet({action:'getTransit'});
     if (r.status !== 'ok') throw new Error(r.message);
-    // 入荷日が空欄のものだけ輸送中として抽出
-    var transit = (r.data || []).filter(function(g) {
-      return !g.arrivalDate || String(g.arrivalDate).trim() === '';
-    });
-    renderTransit(transit);
+    renderTransit(r.data);
   } catch(e) { toast('取得失敗', true); }
 }
 
