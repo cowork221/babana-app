@@ -424,7 +424,8 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
-  document.querySelector('[data-page="'+id+'"]').classList.add('active');
+  var navBtn = document.querySelector('[data-page="'+id+'"]');
+  if (navBtn) navBtn.classList.add('active');
   if (id === 'transit') loadTransit();
   if (id === 'stock') loadStock();
 }
