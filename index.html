@@ -361,7 +361,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 
   <!-- カメラプレビュー -->
   <div id="cameraArea" style="display:none">
-    <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQRFile(event)">
+    <input type="file" id="qrFileInput" accept="image/*" capture="camera" style="display:none" onchange="handleQRFile(event)">
     <canvas id="qrCanvas" style="display:none"></canvas>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="stopScan()">キャンセル</button>
   </div>
