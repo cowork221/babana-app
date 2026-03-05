@@ -361,7 +361,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 
   <!-- カメラプレビュー -->
   <div id="cameraArea" style="display:none">
-    <video id="preview" style="width:100%;border-radius:10px;background:#000" autoplay muted playsinline></video>
+    <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQRFile(event)">
+    <canvas id="qrCanvas" style="display:none"></canvas>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="stopScan()">キャンセル</button>
   </div>
 </div>
@@ -638,19 +639,9 @@ async function submitOrder() {
 // ===== QRスキャン =====
 function startScan() {
   var area = document.getElementById('cameraArea');
-  var video = document.getElementById('preview');
   area.style.display = 'block';
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-    .then(function(stream) {
-      scanStream = stream;
-      video.srcObject = stream;
-      video.play();
-      requestAnimationFrame(scanFrame);
-    })
-    .catch(function(e) {
-      toast('カメラアクセス失敗: '+e.message, true);
-      area.style.display = 'none';
-    });
+  document.getElementById('qrFileInput').value = '';
+  document.getElementById('qrFileInput').click();
 }
 
 function scanFrame() {
@@ -673,8 +664,31 @@ function scanFrame() {
 }
 
 function stopScan() {
-  if (scanStream) { scanStream.getTracks().forEach(function(t){t.stop();}); scanStream = null; }
   document.getElementById('cameraArea').style.display = 'none';
+}
+
+function handleQRFile(event) {
+  var file = event.target.files[0];
+  if (!file) { stopScan(); return; }
+  var img = new Image();
+  var url = URL.createObjectURL(file);
+  img.onload = function() {
+    var canvas = document.getElementById('qrCanvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var code = jsQR(imageData.data, imageData.width, imageData.height);
+    URL.revokeObjectURL(url);
+    stopScan();
+    if (code) {
+      lookupQR(code.data);
+    } else {
+      toast('QRコードが読み取れませんでした', true);
+    }
+  };
+  img.src = url;
 }
 
 async function lookupQR(qr) {
