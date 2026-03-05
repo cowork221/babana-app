@@ -363,6 +363,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   <div id="cameraArea" style="display:none">
     <video id="preview" style="width:100%;border-radius:10px;background:#000" autoplay muted playsinline></video>
     <canvas id="qrCanvas" style="display:none"></canvas>
+    <div id="scanDebug" style="font-size:11px;color:#aaa;margin-top:4px;text-align:center"></div>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="stopScan()">キャンセル</button>
   </div>
 </div>
@@ -657,6 +658,7 @@ function startScan() {
 function scanFrame() {
   var video = document.getElementById('preview');
   if (!scanStream) return;
+  var dbg = document.getElementById('scanDebug');
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
     var canvas = document.getElementById('qrCanvas');
     canvas.width = video.videoWidth;
@@ -664,12 +666,20 @@ function scanFrame() {
     var ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    var code = jsQR(img.data, img.width, img.height);
-    if (code) {
-      stopScan();
-      lookupQR(code.data);
+    if (dbg) dbg.textContent = '解析中: '+canvas.width+'x'+canvas.height;
+    try {
+      var code = jsQR(img.data, img.width, img.height);
+      if (code) {
+        stopScan();
+        lookupQR(code.data);
+        return;
+      }
+    } catch(e) {
+      if (dbg) dbg.textContent = 'jsQRエラー: '+e.message;
       return;
     }
+  } else {
+    if (dbg) dbg.textContent = 'readyState: '+video.readyState;
   }
   setTimeout(scanFrame, 200);
 }
