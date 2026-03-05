@@ -656,8 +656,9 @@ function startScan() {
 
 function scanFrame() {
   var video = document.getElementById('preview');
+  if (!scanStream) return;
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    var canvas = document.createElement('canvas');
+    var canvas = document.getElementById('qrCanvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     var ctx = canvas.getContext('2d');
@@ -670,7 +671,7 @@ function scanFrame() {
       return;
     }
   }
-  if (scanStream) requestAnimationFrame(scanFrame);
+  setTimeout(scanFrame, 200);
 }
 
 function stopScan() {
