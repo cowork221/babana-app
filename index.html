@@ -647,7 +647,9 @@ function startScan() {
       scanStream = stream;
       video.srcObject = stream;
       video.play();
-      requestAnimationFrame(scanFrame);
+      var dbg = document.getElementById('scanDebug');
+      if (dbg) dbg.textContent = 'カメラ起動OK、スキャン開始...';
+      setTimeout(scanFrame, 500);
     })
     .catch(function(e) {
       toast('カメラアクセス失敗: '+e.message, true);
