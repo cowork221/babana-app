@@ -363,7 +363,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   <div id="cameraArea" style="display:none">
     <video id="preview" style="width:100%;border-radius:10px;background:#000" autoplay muted playsinline></video>
     <canvas id="qrCanvas" style="display:none"></canvas>
-    <div id="scanDebug" style="font-size:11px;color:#aaa;margin-top:4px;text-align:center"></div>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="stopScan()">キャンセル</button>
   </div>
 </div>
@@ -642,10 +641,8 @@ function startScan() {
   var area = document.getElementById('cameraArea');
   var video = document.getElementById('preview');
   area.style.display = 'block';
-  var dbg = document.getElementById('scanDebug');
   if (dbg) dbg.textContent = 'カメラ要求中...';
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (dbg) dbg.textContent = 'getUserMedia非対応';
     return;
   }
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
@@ -653,9 +650,7 @@ function startScan() {
       scanStream = stream;
       video.srcObject = stream;
       video.play();
-      var dbg = document.getElementById('scanDebug');
-      if (dbg) dbg.textContent = 'カメラ起動OK、スキャン開始...';
-      setTimeout(scanFrame, 500);
+          setTimeout(scanFrame, 500);
     })
     .catch(function(e) {
       toast('カメラアクセス失敗: '+e.message, true);
@@ -666,7 +661,6 @@ function startScan() {
 function scanFrame() {
   var video = document.getElementById('preview');
   if (!scanStream) return;
-  var dbg = document.getElementById('scanDebug');
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
     var canvas = document.getElementById('qrCanvas');
     canvas.width = video.videoWidth;
