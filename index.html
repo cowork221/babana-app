@@ -410,41 +410,40 @@ input[type=range]::-webkit-slider-thumb {
 // 通貨別デフォルトレート
 var DEFAULT_RATES = { EUR: 163, USD: 150, GBP: 192, CHF: 170 };
 
-// カテゴリマスタ（CATS）シートのカテゴリ名に完全一致
+// カテゴリマスタ（CATS）GASから取得したカテゴリ名に完全一致
 // tr: EPA税率(%)、gen: 一般税率(%) ※null=「30%又は4,300円/足」
 var CATS = [
   // バッグ類
-  { id:'bag_lth',      l:'バッグ（革製）',                    tr:2.2, gen:17.5 },
-  { id:'bag_cl',       l:'バッグ（布・ナイロン製）',           tr:2.2, gen:10   },
-  { id:'pouch_lth',    l:'ポーチ（革製）',                    tr:2.7, gen:12.5 },
-  { id:'pouch_cl',     l:'ポーチ（布製）',                    tr:2.2, gen:10   },
+  { id:'bag_lth',      l:'バッグ（革製（一般品））',                                          tr:2.2, gen:17.5 },
+  { id:'bag_cl',       l:'バッグ（プラスチック・布製（外面））',                              tr:2.2, gen:10   },
+  { id:'pouch_lth',    l:'ポーチ（革製（外面））',                                            tr:2.7, gen:12.5 },
+  { id:'pouch_cl',     l:'ポーチ（布製（外面））',                                            tr:2.2, gen:10   },
   // 財布・小物
-  { id:'wallet',       l:'財布（長・折財布）',                tr:2.7, gen:10   },
-  { id:'card_case',    l:'カードケース、コインケース、キーケース', tr:2.7, gen:10 },
-  { id:'keyholder',    l:'キーホルダー',                      tr:0,   gen:0    },
+  { id:'wallet',       l:'財布（長・折財布）カードケース、コインケース、キーケース（革製・一般品）', tr:2.7, gen:10 },
+  { id:'keyholder',    l:'キーホルダー（金属製）',                                            tr:0,   gen:0    },
   // シューズ
-  { id:'shoes_dress',  l:'革靴（ドレス・ローファー）',        tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
-  { id:'shoes_ankle',  l:'革靴（くるぶし以下）',              tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
-  { id:'sneakers_lth', l:'スニーカー（革甲）',                tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
-  { id:'sneakers_cl',  l:'スニーカー（布・メッシュ甲）',      tr:2.2, gen:8    },
-  { id:'boots',        l:'ブーツ',                            tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
-  { id:'sandal',       l:'サンダル',                          tr:7.4, gen:27   },
-  { id:'pumps',        l:'パンプス',                          tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'shoes_dress',  l:'革靴（ドレス・ローファー）（革底・革申（くるぶしうもの））',        tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'shoes_ankle',  l:'革靴（くるぶし以下）（革底・革甲）',                               tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'sneakers_lth', l:'スニーカー（革甲）（革甲・各種底）',                               tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'sneakers_cl',  l:'＜スニーカー（布・メッシュ甲）（布甲・ゴム底／プラ底）',           tr:2.2, gen:8    },
+  { id:'boots',        l:'ブーツ（革製）',                                                    tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
+  { id:'sandal',       l:'サンダル（体操・競技用系）',                                        tr:7.4, gen:27   },
+  { id:'pumps',        l:'パンプス',                                                          tr:6.5, gen:null, note:'一般30%又は4,300円/足' },
   // 衣類
-  { id:'outer_lth',    l:'アウター・コート（革製）',          tr:2.7, gen:13   },
-  { id:'jkt_lth',      l:'ジャケット（革製）',                tr:2.7, gen:13   },
-  { id:'outer_cl',     l:'アウター・コート（布製）',          tr:0,   gen:10.9 },
-  { id:'jkt_cl',       l:'ジャケット（布製）',                tr:0,   gen:10.9 },
-  { id:'knit',         l:'トップス（ニット）',                tr:0,   gen:10.9 },
-  { id:'tops',         l:'トップス（Tシャツ等）',             tr:0,   gen:10.9 },
-  { id:'bottoms',      l:'パンツ、スカート',                  tr:0,   gen:10.9 },
+  { id:'outer_lth',    l:'アウター・コート（革製）（革製・コンポジションレザー製）',          tr:2.7, gen:13   },
+  { id:'jkt_lth',      l:'ジャケット（革製）（革製）',                                        tr:2.7, gen:13   },
+  { id:'outer_cl',     l:'アウター・コート（布製）（各種繊維製）',                            tr:0,   gen:10.9 },
+  { id:'jkt_cl',       l:'ジャケット（布製）（各種繊維製）',                                  tr:0,   gen:10.9 },
+  { id:'knit',         l:'トップス （ニット）（羊毛・カシミヤ・綿・人造繊維）',               tr:0,   gen:10.9 },
+  { id:'tops',         l:'トップス （Tシャツ等）（綿製・その他繊維製）',                      tr:0,   gen:10.9 },
+  { id:'bottoms',      l:'パンツ、スカート（各種繊維製）',                                    tr:0,   gen:10.9 },
   // アクセサリー
-  { id:'belt',         l:'ベルト（革製）',                    tr:3.4, gen:13   },
-  { id:'scarf',        l:'スカーフ',                          tr:0,   gen:0    },
-  { id:'hat',          l:'帽子',                              tr:0,   gen:0    },
-  { id:'sunglass',     l:'サングラス',                        tr:0,   gen:0    },
-  { id:'jewelry',      l:'ジュエリー',                        tr:0,   gen:0    },
-  { id:'lth_acc',      l:'レザーアクセサリー',                tr:2.7, gen:10   },
+  { id:'belt',         l:'ベルト（革製）（その他革製品）',                                    tr:3.4, gen:13   },
+  { id:'scarf',        l:'スカーフ（各種素材）',                                              tr:0,   gen:0    },
+  { id:'hat',          l:'帽子（各種素材）',                                                  tr:0,   gen:0    },
+  { id:'sunglass',     l:'サングラス',                                                        tr:0,   gen:0    },
+  { id:'jewelry',      l:'ジュエリー（金属製）',                                              tr:0,   gen:0    },
+  { id:'lth_acc',      l:'レザーアクセサリー（革製ブレスレット等）',                          tr:2.7, gen:10   },
 ];
 
 // =====================================================
@@ -561,26 +560,26 @@ async function connectGAS() {
 
     // 関税データ保存・カテゴリ選択肢を再構築
     if (data.tariff && data.tariff.length > 0) {
-      // GASがセルの実数値（0.08など）を返す場合は100倍して%に変換
       APP.tariffData = data.tariff.map(function(t) {
         var epa = parseFloat(t.epa);
         var gen = parseFloat(t.general);
-        // セルが%書式の場合、実数値は0.022など小数で来る → 100倍して%に変換
+        // シートが数値書式（2.2など%形式）で統一済み
+        // 念のため0〜1の小数で来た場合のみ100倍
         if (!isNaN(epa) && epa > 0 && epa < 1) epa = Math.round(epa * 1000) / 10;
         if (!isNaN(gen) && gen > 0 && gen < 1) gen = Math.round(gen * 1000) / 10;
         var cat = String(t.category || '').trim();
         var mat = String(t.material || '').trim();
-        // カテゴリ名が同じ行が複数ある場合、素材区分を付加して区別
         var label = (cat && mat) ? cat + '（' + mat + '）' : cat;
+        // 革靴系：一般税率30は「30%又は4,300円/足」の特殊計算
+        var isShoeSpecial = (!isNaN(gen) && gen >= 30 && label.match(/革靴|ブーツ|スニーカー（革甲|パンプス/));
         return {
           category: label,
           epa:      isNaN(epa) ? 0 : epa,
-          general:  isNaN(gen) ? null : gen,
-          note:     String(t.note || '')
+          general:  isShoeSpecial ? null : (isNaN(gen) ? null : gen),
+          note:     isShoeSpecial ? '一般30%又は4,300円/足' : String(t.note || '')
         };
       }).filter(function(t) {
-        // カテゴリ名があり、かつEPA・一般のどちらかに有効な値がある行のみ
-        return t.category && (t.epa !== 0 || t.general !== null);
+        return t.category;
       });
       buildCatOptions();
     }
