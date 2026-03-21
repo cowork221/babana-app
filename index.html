@@ -395,7 +395,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   </div>
 </div>
 
-<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
 // ===== 状態 =====
 var GAS_URL = '';
@@ -667,7 +667,6 @@ function scanFrame() {
     var ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    if (dbg) dbg.textContent = '解析中: '+canvas.width+'x'+canvas.height;
     try {
       var code = jsQR(img.data, img.width, img.height);
       if (code) {
@@ -675,12 +674,7 @@ function scanFrame() {
         lookupQR(code.data);
         return;
       }
-    } catch(e) {
-      if (dbg) dbg.textContent = 'jsQRエラー: '+e.message;
-      return;
-    }
-  } else {
-    if (dbg) dbg.textContent = 'readyState: '+video.readyState;
+    } catch(e) {}
   }
   setTimeout(scanFrame, 200);
 }
