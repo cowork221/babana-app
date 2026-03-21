@@ -641,7 +641,6 @@ function startScan() {
   var area = document.getElementById('cameraArea');
   var video = document.getElementById('preview');
   area.style.display = 'block';
-  if (dbg) dbg.textContent = 'カメラ要求中...';
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return;
   }
