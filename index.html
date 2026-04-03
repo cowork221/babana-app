@@ -919,7 +919,7 @@ async function showDetail(code) {
     if (r.status !== 'ok') throw new Error(r.message);
     currentDetail = r.data;
     renderDetail(r.data);
-  } catch(e) { alert('エラー: '+e.message); }
+  } catch(e) { toast('詳細取得失敗: '+e.message, true); }
 }
 
 function renderDetail(d) {
