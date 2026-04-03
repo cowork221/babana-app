@@ -537,11 +537,11 @@ function renderStock(data) {
     }).join('');
     return '<div class="stock-item'+(totalQty===0?' low':'')+'">'
       +'<div class="si-hd">'
-        +'<div>'
+      +'<div class="si-hd" onclick="showDetail('+g.orderCode+')" style="cursor:pointer">'
           +'<div class="si-brand">'+g.brand+'</div>'
           +'<div class="si-name">'+g.name+'</div>'
           +'<div class="si-code">入庫番号 '+g.orderCode+'</div>'
-        +'</div>'
+          +'<div class="si-code">入庫番号 '+g.orderCode+' <span style="font-size:10px;color:var(--ac)">→ 詳細・金額編集</span></div>'
         +'<span class="si-badge '+(totalQty>0?'in':'out')+'">'+(totalQty>0?'▲'+totalQty+'点':'在庫なし')+'</span>'
       +'</div>'
       +'<div class="si-variants" style="display:block">'+variants+'</div>'
