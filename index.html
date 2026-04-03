@@ -1051,15 +1051,16 @@ async function saveAmounts() {
   var et = parseFloat(document.getElementById('det-estTax').value)||0;
   var fr = parseFloat(document.getElementById('det-fixedRate').value)||0;
   var ft = parseFloat(document.getElementById('det-fixedTax').value)||0;
+  var fp = parseFloat(document.getElementById('det-fixedPrice') ? document.getElementById('det-fixedPrice').value : 0) || ep;
   var data = {
     price: ep, estRate: er,
     priceJPY: Math.round(ep*er), estTax: et, estCost: Math.round(ep*er+et),
     fixedRate: fr,
-    fixedPriceJPY: Math.round(fp*fr), fixedTax: ft, fixedCost: Math.round(fp*fr+ft)
+    fixedPriceJPY: Math.round(ep*fr), fixedTax: ft, fixedCost: Math.round(ep*fr+ft)
   };
   // 概算原価・確定原価を表示更新
   document.getElementById('det-estCost').value = Math.round(ep*er+et).toLocaleString();
-  if(fp>0) document.getElementById('det-fixedCost').value = Math.round(fp*fr+ft).toLocaleString();
+  if(fr>0) document.getElementById('det-fixedCost').value = Math.round(ep*fr+ft).toLocaleString();
   try {
     var r = await gasGet({action:'updateOrder', code:code, data:JSON.stringify(data)});
     if (r.status !== 'ok') throw new Error(r.message);
