@@ -529,7 +529,7 @@ function renderStock(data) {
       var label = [v.size,v.color].filter(Boolean).join(' / ') || 'サイズ・カラー未設定';
       var sl=label.replace(/'/g,"&#39;"), sb=g.brand.replace(/'/g,"&#39;"), sn=g.name.replace(/'/g,"&#39;");
       return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-        +'<span class="sv" onclick="showShipFromStock(\''+ v.qr +'\')" style="flex:1">'
+        +'<span class="sv" onclick="showShipFromStock(\''+v.qr+'\')" style="flex:1">'
         +label+' <span class="sv-qty">'+v.currentQty+'</span></span>'
         +'<button onclick="reprintQR(\''+v.qr+'\',\''+sb+'\',\''+sn+'\',\''+sl+'\')"'
         +' style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);'
@@ -541,8 +541,7 @@ function renderStock(data) {
           +'<div class="si-brand">'+g.brand+'</div>'
           +'<div class="si-name">'+g.name+'</div>'
           +'<div class="si-code">入庫番号 '+g.orderCode+'</div>'
-          +'<div class="si-code">入庫番号 '+g.orderCode+'</div>'
-          +'<button onclick="showDetail('+g.orderCode+')" style="margin-top:4px;background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);font-size:10px;padding:3px 8px;cursor:pointer">詳細・金額編集</button>'
+        +'</div>'
         +'<span class="si-badge '+(totalQty>0?'in':'out')+'">'+(totalQty>0?'▲'+totalQty+'点':'在庫なし')+'</span>'
       +'</div>'
       +'<div class="si-variants" style="display:block">'+variants+'</div>'
