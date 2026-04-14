@@ -307,7 +307,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 <!-- ページ：在庫一覧 -->
 <div class="page" id="page-stock">
   <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input class="fi" type="text" id="searchInput" placeholder="ブランド・商品名で検索" oninput="filterStock()" style="flex:1">
+    <input class="fi" type="text" id="searchInput" placeholder="型番・ブランド・商品名で検索" oninput="filterStock()" style="flex:1">
     <button class="btn btn-secondary btn-sm" onclick="loadStock()">↻</button>
   </div>
   <div id="stockList"><div style="color:var(--t3);font-size:12px;text-align:center;padding:40px">接続後に表示されます</div></div>
@@ -556,7 +556,7 @@ function filterStock() {
   var q = document.getElementById('searchInput').value.toLowerCase();
   if (!q) { renderStock(allStock); return; }
   var filtered = allStock.filter(function(g){
-    return (g.brand+g.name).toLowerCase().includes(q);
+    return (String(g.itemCode||"")+g.brand+g.name).toLowerCase().includes(q);
   });
   renderStock(filtered);
 }
