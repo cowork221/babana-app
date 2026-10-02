@@ -192,33 +192,19 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
         <label>仕入れ先</label>
         <select class="fi" id="supplier">
           <option value="">選択してください</option>
-          <option>10 Corso Como</option>
-          <option>Actuel B</option>
-          <option>Al Duca d'Aosta</option>
-          <option>Minetti Angelo</option>
-          <option>brunarosso</option>
-          <option>ANTONIA</option>
-          <option>Online Window Plus / Baseblu</option>
-          <option>Il Duomo</option>
-          <option>Eleonora Bonucci</option>
-          <option>Galiano Store</option>
-          <option>Giglio</option>
-          <option>Grifo210</option>
+          <option>tiziana fausti</option>
+          <option>Angelo Minetti</option>
           <option>Julian Fashion</option>
-          <option>Leam</option>
-          <option>Monti Boutique</option>
-          <option>The Club</option>
-          <option>Palazzo Belli Italy</option>
-          <option>Palazzo Belli Spain</option>
-          <option>Spinnaker Boutique</option>
-          <option>Russo Capri</option>
-          <option>SAM GG</option>
-          <option>TESSABIT</option>
-          <option>BEAT S.r.l</option>
-          <option>Tiziana Fausti</option>
-          <option>Vietti</option>
-          <option>Wise Boutique</option>
-          <option>ZAP</option>
+          <option>Antonioli</option>
+          <option>Luisa Via Roma</option>
+          <option>SSENSE</option>
+          <option>Browns Fashion</option>
+          <option>Mytheresa</option>
+          <option>Farfetch</option>
+          <option>NET-A-PORTER</option>
+          <option>Mr Porter</option>
+          <option>Cettire</option>
+          <option>RATTI（Rboutique）</option>
           <option>その他</option>
         </select>
       </div>
@@ -242,7 +228,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 
     <div class="fi-row">
       <div class="form-row">
-        <label>現地価格</label>
+        <label>概算現地価格</label>
         <input class="fi fi-mono" type="number" id="estPrice" placeholder="0" oninput="calcEst()">
       </div>
       <div class="form-row">
@@ -307,7 +293,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 <!-- ページ：在庫一覧 -->
 <div class="page" id="page-stock">
   <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input class="fi" type="text" id="searchInput" placeholder="型番・ブランド・商品名で検索" oninput="filterStock()" style="flex:1">
+    <input class="fi" type="text" id="searchInput" placeholder="ブランド・商品名で検索" oninput="filterStock()" style="flex:1">
     <button class="btn btn-secondary btn-sm" onclick="loadStock()">↻</button>
   </div>
   <div id="stockList"><div style="color:var(--t3);font-size:12px;text-align:center;padding:40px">接続後に表示されます</div></div>
@@ -377,7 +363,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   <!-- カメラプレビュー -->
   <div id="cameraArea" style="display:none">
     <video id="preview" style="width:100%;border-radius:10px;background:#000" autoplay muted playsinline></video>
-    <canvas id="qrCanvas" style="display:none"></canvas>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="stopScan()">キャンセル</button>
   </div>
 </div>
@@ -410,7 +395,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script>
 // ===== 状態 =====
 var GAS_URL = '';
@@ -440,10 +425,7 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
-  var navBtn = document.querySelector('[data-page="'+id+'"]');
-  if (navBtn) navBtn.classList.add('active');
-  if (id === 'transit') loadTransit();
-  if (id === 'stock') loadStock();
+  document.querySelector('[data-page="'+id+'"]').classList.add('active');
 }
 
 // ===== GAS接続 =====
@@ -475,8 +457,7 @@ async function gasGet(params, url) {
   var qs = Object.keys(params).map(function(k){
     return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
   }).join('&');
-  var sep = base.includes('?') ? '&' : '?';
-  var res = await fetch(base+sep+qs);
+  var res = await fetch(base+'?'+qs);
   return await res.json();
 }
 
@@ -484,23 +465,12 @@ async function gasGet(params, url) {
 async function loadSummary() {
   if (!GAS_URL) return;
   try {
-    var r = await gasGet({action:'getSummary'});
+    var r = await gasGet({action:'summary'});
     if (r.status === 'ok') {
       var d = r.data;
       document.getElementById('sumStock').textContent = d.totalStock || 0;
-      document.getElementById('sumCost').textContent = d.stockValue ? '¥'+(d.stockValue/10000).toFixed(1)+'万' : '—';
+      document.getElementById('sumCost').textContent = d.totalCost ? '¥'+(d.totalCost/10000).toFixed(1)+'万' : '—';
       document.getElementById('sumTransit').textContent = d.inTransit || 0;
-      document.getElementById('sumToday').textContent = d.todayShip || 0;
-      if (d.transitItems && d.transitItems.length > 0) {
-        document.getElementById('transitList').innerHTML = d.transitItems.map(function(g) {
-          return '<div class="oi-sm" onclick="showDetail('+g.orderCode+')" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--bd)">'
-            +'<span style="font-size:12px;font-weight:700">'+g.brand+' '+g.name+'</span>'
-            +'<span style="font-size:11px;color:var(--t3);margin-left:8px">'+g.supplier+'</span>'
-            +'</div>';
-        }).join('');
-      } else {
-        document.getElementById('transitList').innerHTML = '<div style="color:var(--t3);font-size:12px">輸送中の注文はありません</div>';
-      }
     }
   } catch(e) {}
 }
@@ -529,7 +499,7 @@ function renderStock(data) {
       var label = [v.size,v.color].filter(Boolean).join(' / ') || 'サイズ・カラー未設定';
       var sl=label.replace(/'/g,"&#39;"), sb=g.brand.replace(/'/g,"&#39;"), sn=g.name.replace(/'/g,"&#39;");
       return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-        +'<span class="sv" onclick="showShipFromStock(\''+v.qr+'\')" style="flex:1">'
+        +'<span class="sv" onclick="showShipFromStock(\''+ v.qr +'\')" style="flex:1">'
         +label+' <span class="sv-qty">'+v.currentQty+'</span></span>'
         +'<button onclick="reprintQR(\''+v.qr+'\',\''+sb+'\',\''+sn+'\',\''+sl+'\')"'
         +' style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);'
@@ -542,10 +512,7 @@ function renderStock(data) {
           +'<div class="si-name">'+g.name+'</div>'
           +'<div class="si-code">入庫番号 '+g.orderCode+'</div>'
         +'</div>'
-        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'
-          +'<span class="si-badge '+(totalQty>0?'in':'out')+'">'+(totalQty>0?'▲'+totalQty+'点':'在庫なし')+'</span>'
-          +'<button onclick="event.stopPropagation();showDetail('+g.orderCode+')" style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);font-size:10px;padding:3px 8px;cursor:pointer">詳細・編集</button>'
-        +'</div>'
+        +'<span class="si-badge '+(totalQty>0?'in':'out')+'">'+(totalQty>0?'▲'+totalQty+'点':'在庫なし')+'</span>'
       +'</div>'
       +'<div class="si-variants" style="display:block">'+variants+'</div>'
     +'</div>';
@@ -556,7 +523,7 @@ function filterStock() {
   var q = document.getElementById('searchInput').value.toLowerCase();
   if (!q) { renderStock(allStock); return; }
   var filtered = allStock.filter(function(g){
-    return (String(g.itemCode||"")+g.brand+g.name).toLowerCase().includes(q);
+    return (g.brand+g.name).toLowerCase().includes(q);
   });
   renderStock(filtered);
 }
@@ -618,9 +585,9 @@ async function submitOrder() {
     itemCode: document.getElementById('itemCode').value.trim(),
     supplier: document.getElementById('supplier').value.trim(),
     currency: document.getElementById('currency').value,
-    price: price,
+    estPrice: price,
     estRate: rate,
-    priceJPY: Math.round(price * rate),
+    estPriceJPY: Math.round(price * rate),
     estTax: tax,
     estCost: Math.round(price * rate + tax),
     memo: document.getElementById('orderMemo').value.trim(),
@@ -659,15 +626,12 @@ function startScan() {
   var area = document.getElementById('cameraArea');
   var video = document.getElementById('preview');
   area.style.display = 'block';
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    return;
-  }
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
     .then(function(stream) {
       scanStream = stream;
       video.srcObject = stream;
       video.play();
-          setTimeout(scanFrame, 500);
+      requestAnimationFrame(scanFrame);
     })
     .catch(function(e) {
       toast('カメラアクセス失敗: '+e.message, true);
@@ -677,27 +641,21 @@ function startScan() {
 
 function scanFrame() {
   var video = document.getElementById('preview');
-  if (!scanStream) return;
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    var canvas = document.getElementById('qrCanvas');
+    var canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     var ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    try {
-      var code = jsQR(img.data, img.width, img.height);
-      if (code) {
-        stopScan();
-        lookupQR(code.data);
-        return;
-      }
-    } catch(e) {
+    var code = jsQR(img.data, img.width, img.height);
+    if (code) {
+      stopScan();
+      lookupQR(code.data);
       return;
     }
-  } else {
   }
-  setTimeout(scanFrame, 200);
+  if (scanStream) requestAnimationFrame(scanFrame);
 }
 
 function stopScan() {
@@ -886,8 +844,9 @@ async function loadTransit() {
   var el = document.getElementById('transitListFull');
   el.innerHTML = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:30px">読み込み中...</div>';
   try {
-    var r = await gasGet({action:'getTransit'});
+    var r = await gasGet({action:'getList', all:'true', grouped:'true'});
     if (r.status !== 'ok') throw new Error(r.message);
+    // 未入荷（入荷日なし）のものを抽出 → 全件から在庫中のものを表示
     renderTransit(r.data);
   } catch(e) { toast('取得失敗', true); }
 }
@@ -899,6 +858,7 @@ function renderTransit(data) {
     return;
   }
   el.innerHTML = data.map(function(g) {
+    var totalQty = g.variants ? g.variants.reduce(function(s,v){return s+v.currentQty;},0) : 0;
     return '<div class="order-item" onclick="showDetail('+g.orderCode+')" style="cursor:pointer">'
       +'<div class="oi-hd">'
         +'<div>'
@@ -906,7 +866,7 @@ function renderTransit(data) {
           +'<div class="oi-name">'+g.brand+' '+g.name+'</div>'
           +'<div class="oi-supplier">'+( g.supplier||'' )+'</div>'
         +'</div>'
-        +'<span class="si-badge" style="background:rgba(200,150,50,.15);color:#c89632">輸送中</span>'
+        +'<span class="si-badge in">▲'+totalQty+'点</span>'
       +'</div>'
       +'<div style="font-size:11px;color:var(--t3);margin-top:4px">タップして詳細・チェックリスト →</div>'
     +'</div>';
@@ -925,23 +885,23 @@ async function showDetail(code) {
     if (r.status !== 'ok') throw new Error(r.message);
     currentDetail = r.data;
     renderDetail(r.data);
-  } catch(e) { alert('エラー: '+e.message); }
+  } catch(e) { toast('取得失敗: '+e.message, true); }
 }
 
 function renderDetail(d) {
   var el = document.getElementById('detailContent');
   var carriers = ['DHL','UPS','FedEx','EMS','TNT','その他'];
   var carrierOpts = carriers.map(function(c){
-    return '<option value="'+c+'"'+(d['\u914d\u9001\u696d\u8005']===c?' selected':'')+'>'+c+'</option>';
+    return '<option value="'+c+'"'+(d['配送業者']===c?' selected':'')+'>'+c+'</option>';
   }).join('');
 
   var variantsHtml = '';
   if (d.variants && d.variants.length > 0) {
     d.variants.forEach(function(v) {
-      var label = [v.size, v.color].filter(Boolean).join(' / ') || '\u2014';
+      var label = [v.size, v.color].filter(Boolean).join(' / ') || '—';
       var qE = (v.qr||'').replace(/'/g,"&#39;");
-      var bE = (d['\u30d6\u30e9\u30f3\u30c9']||'').replace(/'/g,"&#39;");
-      var nE = (d['\u5546\u54c1\u540d']||'').replace(/'/g,"&#39;");
+      var bE = (d['ブランド']||'').replace(/'/g,"&#39;");
+      var nE = (d['商品名']||'').replace(/'/g,"&#39;");
       var lE = label.replace(/'/g,"&#39;");
       variantsHtml +=
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)">'
@@ -950,67 +910,64 @@ function renderDetail(d) {
           +'<div style="font-size:10px;color:var(--t3);font-family:DM Mono,monospace">'+(v.qr||'')+'</div>'
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="font-size:14px;font-weight:700;color:'+(v.currentQty>0?'var(--ac)':'var(--rd)')+'">'+v.currentQty+'\u70b9</span>'
+          +'<span style="font-size:14px;font-weight:700;color:'+(v.currentQty>0?'var(--ac)':'var(--rd)')+'">'+v.currentQty+'点</span>'
           +'<button onclick="reprintQR(\''+qE+'\',\''+bE+'\',\''+nE+'\',\''+lE+'\')" '
-          +'style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);font-size:10px;padding:4px 8px;cursor:pointer">QR\u5370\u5237</button>'
+          +'style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);font-size:10px;padding:4px 8px;cursor:pointer">QR印刷</button>'
         +'</div>'
         +'</div>';
     });
   } else {
-    variantsHtml = '<div style="color:var(--t3);font-size:12px">\u30d0\u30ea\u30a2\u30f3\u30c8\u306a\u3057</div>';
+    variantsHtml = '<div style="color:var(--t3);font-size:12px">バリアントなし</div>';
   }
 
   el.innerHTML =
     '<div class="card" style="margin-bottom:10px">'
-    +'<div class="card-t">\ud83d\udce6 \u57fa\u672c\u60c5\u5831</div>'
-    +'<div class="form-row"><label>\u30d6\u30e9\u30f3\u30c9</label><input class="fi" type="text" id="det-brand" value="'+(d['\u30d6\u30e9\u30f3\u30c9']||'')+'"></div>'
-    +'<div class="form-row"><label>\u5546\u54c1\u540d</label><input class="fi" type="text" id="det-name" value="'+(d['\u5546\u54c1\u540d']||'')+'"></div>'
-    +'<div class="form-row"><label>\u578b\u756a</label><input class="fi fi-mono" type="text" id="det-itemcode" value="'+(d['\u578b\u756a']||'')+'"></div>'
-    +'<div class="form-row"><label>\u4ed5\u5165\u308c\u5148</label><input class="fi" type="text" id="det-supplier" value="'+(d['\u4ed5\u5165\u308c\u5148']||'')+'"></div>'
-    +'<div style="font-size:13px;color:var(--t2);margin-top:8px">\u5165\u5eab\u756a\u53f7 <span style="color:var(--ac);font-family:DM Mono,monospace;font-weight:700">'+(d['\u5165\u5eab\u756a\u53f7']||'')+'</span></div>'
-    +'<button class="btn btn-secondary" style="margin-top:8px" onclick="saveBasicInfo()">\u57fa\u672c\u60c5\u5831\u3092\u4fdd\u5b58\u3059\u308b</button>'
-    +'<div class="card" style="margin-bottom:10px">'
-    +'</div>'
-    +'<div class="card-t">\u2705 \u30c1\u30a7\u30c3\u30af\u30ea\u30b9\u30c8</div>'
-    +'<div class="form-row"><label>\u914d\u9001\u696d\u8005</label>'
-    +'<select class="fi" id="det-carrier"><option value="">\u672a\u8a2d\u5b9a</option>'+carrierOpts+'</select></div>'
-    +'<div class="form-row"><label>\u8ffd\u8de1\u756a\u53f7</label>'
-    +'<input class="fi fi-mono" type="text" id="det-tracking" value="'+(d['\u8ffd\u8de1\u756a\u53f7']||'')+'" placeholder="1Z826Y630495967012"></div>'
-    +'<div class="form-row"><label>\u5165\u8377\u65e5</label>'
-    +'<input class="fi" type="date" id="det-arrival" value="'+(d['\u5165\u8377\u65e5']?toDateInput(d['\u5165\u8377\u65e5']):'')+'"></div>'
-    +'<div style="margin-top:8px">'
-    +checkRow('det-contacted','\u4e8b\u524d\u9023\u7d61\u6e08',d['\u4e8b\u524d\u9023\u7d61\u6e08'])
-    +checkRow('det-taxpaid','\u95a2\u7a0e\u6255\u6e08',d['\u95a2\u7a0e\u6255\u6e08'])
-    +checkRow('det-permit','\u8a31\u53ef\u66f8\u4f9d\u983c\u6e08',d['\u8a31\u53ef\u66f8\u4f9d\u983c\u6e08'])
-    +'</div>'
-    +'<button class="btn btn-primary" style="margin-top:12px" onclick="saveChecklist()">\u4fdd\u5b58\u3059\u308b</button>'
+    +'<div class="card-t">📦 '+(d['ブランド']||'')+' / '+(d['商品名']||'')+'</div>'
+    +'<div style="font-size:13px;color:var(--t2)">入庫番号 <span style="color:var(--ac);font-family:DM Mono,monospace;font-weight:700">'+(d['入庫番号']||'')+'</span></div>'
+    +'<div style="font-size:12px;color:var(--t3);margin-top:4px">型番: '+(d['型番']||'—')+'　仕入れ先: '+(d['仕入れ先']||'—')+'</div>'
     +'</div>'
 
     +'<div class="card" style="margin-bottom:10px">'
-    +'<div class="card-t">\ud83d\udcb4 \u91d1\u984d</div>'
-    +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px">\u6982\u7b97</div>'
+    +'<div class="card-t">✅ チェックリスト</div>'
+    +'<div class="form-row"><label>配送業者</label>'
+    +'<select class="fi" id="det-carrier"><option value="">未設定</option>'+carrierOpts+'</select></div>'
+    +'<div class="form-row"><label>追跡番号</label>'
+    +'<input class="fi fi-mono" type="text" id="det-tracking" value="'+(d['追跡番号']||'')+'" placeholder="1Z826Y630495967012"></div>'
+    +'<div class="form-row"><label>入荷日</label>'
+    +'<input class="fi" type="date" id="det-arrival" value="'+(d['入荷日']?toDateInput(d['入荷日']):'')+'"></div>'
+    +'<div style="margin-top:8px">'
+    +checkRow('det-contacted','事前連絡済み',d['事前連絡済み'])
+    +checkRow('det-taxpaid','関税払済み',d['関税払済み'])
+    +checkRow('det-permit','許可書依頼済み',d['許可書依頼済み'])
+    +'</div>'
+    +'<button class="btn btn-primary" style="margin-top:12px" onclick="saveChecklist()">保存する</button>'
+    +'</div>'
+
+    +'<div class="card" style="margin-bottom:10px">'
+    +'<div class="card-t">💴 金額</div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px">概算</div>'
     +'<div class="fi-row" style="margin-bottom:10px">'
-    +'<div class="form-row"><label>\u73fe\u5730\u4fa1\u683c</label><input class="fi fi-mono" type="number" id="det-estPrice" value="'+(d['\u73fe\u5730\u4fa1\u683c']||0)+'"></div>'
-    +'<div class="form-row"><label>\u30ec\u30fc\u30c8</label><input class="fi fi-mono" type="number" id="det-estRate" value="'+(d['\u6982\u7b97\u30ec\u30fc\u30c8']||163)+'"></div>'
+    +'<div class="form-row"><label>現地価格</label><input class="fi fi-mono" type="number" id="det-estPrice" value="'+(d['概算現地価格']||0)+'"></div>'
+    +'<div class="form-row"><label>レート</label><input class="fi fi-mono" type="number" id="det-estRate" value="'+(d['概算レート']||163)+'"></div>'
     +'</div>'
     +'<div class="fi-row" style="margin-bottom:10px">'
-    +'<div class="form-row"><label>\u95a2\u7a0e\u30fb\u6d88\u8cbb\u7a0e</label><input class="fi fi-mono" type="number" id="det-estTax" value="'+(d['\u6982\u7b97\u95a2\u7a0e\u6d88\u8cbb\u7a0e']||0)+'"></div>'
-    +'<div class="form-row"><label>\u6982\u7b97\u539f\u4fa1</label><input class="fi fi-mono" type="text" id="det-estCost" value="'+(d['\u6982\u7b97\u539f\u4fa1']||0)+'" readonly style="color:var(--ac)"></div>'
+    +'<div class="form-row"><label>関税・消費税</label><input class="fi fi-mono" type="number" id="det-estTax" value="'+(d['概算関税消費税']||0)+'"></div>'
+    +'<div class="form-row"><label>概算原価</label><input class="fi fi-mono" type="text" id="det-estCost" value="'+(d['概算原価']||0)+'" readonly style="color:var(--ac)"></div>'
     +'</div>'
-    +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;margin-top:4px">\u78ba\u5b9a\uff08\u5f8c\u65e5\u5165\u529b\uff09</div>'
+    +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px;margin-top:4px">確定（後日入力）</div>'
     +'<div class="fi-row" style="margin-bottom:10px">'
-    +'<div class="form-row"><label>\u78ba\u5b9a\u73fe\u5730\u4fa1\u683c</label><input class="fi fi-mono" type="number" id="det-fixedPrice" value="'+(d['\u78ba\u5b9a\u73fe\u5730\u4fa1\u683c']||'')+'"></div>'
-    +'<div class="form-row"><label>\u78ba\u5b9a\u30ec\u30fc\u30c8</label><input class="fi fi-mono" type="number" id="det-fixedRate" value="'+(d['\u78ba\u5b9a\u30ec\u30fc\u30c8']||'')+'"></div>'
+    +'<div class="form-row"><label>確定現地価格</label><input class="fi fi-mono" type="number" id="det-fixedPrice" value="'+(d['確定現地価格']||'')+'"></div>'
+    +'<div class="form-row"><label>確定レート</label><input class="fi fi-mono" type="number" id="det-fixedRate" value="'+(d['確定レート']||'')+'"></div>'
     +'</div>'
     +'<div class="fi-row" style="margin-bottom:10px">'
-    +'<div class="form-row"><label>\u78ba\u5b9a\u95a2\u7a0e\u30fb\u6d88\u8cbb\u7a0e</label><input class="fi fi-mono" type="number" id="det-fixedTax" value="'+(d['\u78ba\u5b9a\u95a2\u7a0e\u6d88\u8cbb\u7a0e']||'')+'"></div>'
-    +'<div class="form-row"><label>\u78ba\u5b9a\u539f\u4fa1</label><input class="fi fi-mono" type="text" id="det-fixedCost" value="'+(d['\u78ba\u5b9a\u539f\u4fa1']||'')+'" readonly style="color:var(--gn)"></div>'
+    +'<div class="form-row"><label>確定関税・消費税</label><input class="fi fi-mono" type="number" id="det-fixedTax" value="'+(d['確定関税消費税']||'')+'"></div>'
+    +'<div class="form-row"><label>確定原価</label><input class="fi fi-mono" type="text" id="det-fixedCost" value="'+(d['確定原価']||'')+'" readonly style="color:var(--gn)"></div>'
     +'</div>'
-    +'<button class="btn btn-secondary" onclick="saveAmounts()">\u91d1\u984d\u3092\u4fdd\u5b58\u3059\u308b</button>'
+    +'<button class="btn btn-secondary" onclick="saveAmounts()">金額を保存する</button>'
     +'</div>'
 
     +'<div class="card">'
-    +'<div class="card-t">\ud83d\udc55 \u30d0\u30ea\u30a2\u30f3\u30c8\uff08\u5728\u5eab\uff09</div>'
+    +'<div class="card-t">👕 バリアント（在庫）</div>'
     +variantsHtml
     +'</div>';
 }
@@ -1033,22 +990,6 @@ function toDateInput(val) {
     return p[0]+'-'+String(p[1]).padStart(2,'0')+'-'+String(p[2]).padStart(2,'0');
   }
   return '';
-}
-
-async function saveBasicInfo() {
-  if (!currentDetail) return;
-  var code = currentDetail['入庫番号'];
-  var data = {
-    brand:    document.getElementById('det-brand').value.trim(),
-    name:     document.getElementById('det-name').value.trim(),
-    itemCode: document.getElementById('det-itemcode').value.trim(),
-    supplier: document.getElementById('det-supplier').value.trim()
-  };
-  try {
-    var r = await gasGet({action:'updateOrder', code:code, data:JSON.stringify(data)});
-    if (r.status !== 'ok') throw new Error(r.message);
-    toast('✓ 基本情報を保存しました');
-  } catch(e) { toast('保存失敗: '+e.message, true); }
 }
 
 async function saveChecklist() {
@@ -1079,13 +1020,14 @@ async function saveAmounts() {
   var fr = parseFloat(document.getElementById('det-fixedRate').value)||0;
   var ft = parseFloat(document.getElementById('det-fixedTax').value)||0;
   var data = {
-    price: ep, estRate: er,
-    priceJPY: Math.round(ep*er), estTax: et, estCost: Math.round(ep*er+et),
+    estPrice: ep, estRate: er,
+    estPriceJPY: Math.round(ep*er), estTax: et, estCost: Math.round(ep*er+et),
     fixedPrice: fp, fixedRate: fr,
     fixedPriceJPY: Math.round(fp*fr), fixedTax: ft, fixedCost: Math.round(fp*fr+ft)
   };
+  // 概算原価・確定原価を表示更新
   document.getElementById('det-estCost').value = Math.round(ep*er+et).toLocaleString();
-  if(fp>0 && fr>0) document.getElementById('det-fixedCost').value = Math.round(fp*fr+ft).toLocaleString();
+  if(fp>0) document.getElementById('det-fixedCost').value = Math.round(fp*fr+ft).toLocaleString();
   try {
     var r = await gasGet({action:'updateOrder', code:code, data:JSON.stringify(data)});
     if (r.status !== 'ok') throw new Error(r.message);
@@ -1099,7 +1041,7 @@ function toast(msg, isErr) {
   el.textContent = msg;
   el.className = 'toast'+(isErr?' error':'');
   el.classList.add('show');
-  setTimeout(function(){ el.classList.remove('show'); }, 10000);
+  setTimeout(function(){ el.classList.remove('show'); }, 2500);
 }
 </script>
 
