@@ -192,18 +192,33 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
         <label>仕入れ先</label>
         <select class="fi" id="supplier">
           <option value="">選択してください</option>
-          <option>tiziana fausti</option>
-          <option>Angelo Minetti</option>
+          <option>10 Corso Como</option>
+          <option>Actuel B</option>
+          <option>Al Duca d'Aosta</option>
+          <option>Minetti Angelo</option>
+          <option>brunarosso</option>
+          <option>ANTONIA</option>
+          <option>Online Window Plus / Baseblu</option>
+          <option>Il Duomo</option>
+          <option>Eleonora Bonucci</option>
+          <option>Galiano Store</option>
+          <option>Giglio</option>
+          <option>Grifo210</option>
           <option>Julian Fashion</option>
-          <option>Antonioli</option>
-          <option>Luisa Via Roma</option>
-          <option>SSENSE</option>
-          <option>Browns Fashion</option>
-          <option>Mytheresa</option>
-          <option>Farfetch</option>
-          <option>NET-A-PORTER</option>
-          <option>Mr Porter</option>
-          <option>Cettire</option>
+          <option>Leam</option>
+          <option>Monti Boutique</option>
+          <option>The Club</option>
+          <option>Palazzo Belli Italy</option>
+          <option>Palazzo Belli Spain</option>
+          <option>Spinnaker Boutique</option>
+          <option>Russo Capri</option>
+          <option>SAM GG</option>
+          <option>TESSABIT</option>
+          <option>BEAT S.r.l</option>
+          <option>Tiziana Fausti</option>
+          <option>Vietti</option>
+          <option>Wise Boutique</option>
+          <option>ZAP</option>
           <option>RATTI（Rboutique）</option>
           <option>その他</option>
         </select>
@@ -228,7 +243,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 
     <div class="fi-row">
       <div class="form-row">
-        <label>概算現地価格</label>
+        <label>現地価格</label>
         <input class="fi fi-mono" type="number" id="estPrice" placeholder="0" oninput="calcEst()">
       </div>
       <div class="form-row">
@@ -293,7 +308,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
 <!-- ページ：在庫一覧 -->
 <div class="page" id="page-stock">
   <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input class="fi" type="text" id="searchInput" placeholder="ブランド・商品名で検索" oninput="filterStock()" style="flex:1">
+    <input class="fi" type="text" id="searchInput" placeholder="型番・ブランド・商品名で検索" oninput="filterStock()" style="flex:1">
     <button class="btn btn-secondary btn-sm" onclick="loadStock()">↻</button>
   </div>
   <div id="stockList"><div style="color:var(--t3);font-size:12px;text-align:center;padding:40px">接続後に表示されます</div></div>
@@ -363,6 +378,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   <!-- カメラプレビュー -->
   <div id="cameraArea" style="display:none">
     <video id="preview" style="width:100%;border-radius:10px;background:#000" autoplay muted playsinline></video>
+    <canvas id="qrCanvas" style="display:none"></canvas>
     <button class="btn btn-secondary" style="margin-top:8px" onclick="stopScan()">キャンセル</button>
   </div>
 </div>
@@ -395,7 +411,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
 // ===== 状態 =====
 var GAS_URL = '';
@@ -425,7 +441,10 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('page-'+id).classList.add('active');
-  document.querySelector('[data-page="'+id+'"]').classList.add('active');
+  var navBtn = document.querySelector('[data-page="'+id+'"]');
+  if (navBtn) navBtn.classList.add('active');
+  if (id === 'transit') loadTransit();
+  if (id === 'stock') loadStock();
 }
 
 // ===== GAS接続 =====
@@ -457,7 +476,8 @@ async function gasGet(params, url) {
   var qs = Object.keys(params).map(function(k){
     return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
   }).join('&');
-  var res = await fetch(base+'?'+qs);
+  var sep = base.includes('?') ? '&' : '?';
+  var res = await fetch(base+sep+qs);
   return await res.json();
 }
 
@@ -465,12 +485,23 @@ async function gasGet(params, url) {
 async function loadSummary() {
   if (!GAS_URL) return;
   try {
-    var r = await gasGet({action:'summary'});
+    var r = await gasGet({action:'getSummary'});
     if (r.status === 'ok') {
       var d = r.data;
       document.getElementById('sumStock').textContent = d.totalStock || 0;
-      document.getElementById('sumCost').textContent = d.totalCost ? '¥'+(d.totalCost/10000).toFixed(1)+'万' : '—';
+      document.getElementById('sumCost').textContent = d.stockValue ? '¥'+(d.stockValue/10000).toFixed(1)+'万' : '—';
       document.getElementById('sumTransit').textContent = d.inTransit || 0;
+      document.getElementById('sumToday').textContent = d.todayShip || 0;
+      if (d.transitItems && d.transitItems.length > 0) {
+        document.getElementById('transitList').innerHTML = d.transitItems.map(function(g) {
+          return '<div class="oi-sm" onclick="showDetail('+g.orderCode+')" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--bd)">'
+            +'<span style="font-size:12px;font-weight:700">'+g.brand+' '+g.name+'</span>'
+            +'<span style="font-size:11px;color:var(--t3);margin-left:8px">'+g.supplier+'</span>'
+            +'</div>';
+        }).join('');
+      } else {
+        document.getElementById('transitList').innerHTML = '<div style="color:var(--t3);font-size:12px">輸送中の注文はありません</div>';
+      }
     }
   } catch(e) {}
 }
@@ -499,7 +530,7 @@ function renderStock(data) {
       var label = [v.size,v.color].filter(Boolean).join(' / ') || 'サイズ・カラー未設定';
       var sl=label.replace(/'/g,"&#39;"), sb=g.brand.replace(/'/g,"&#39;"), sn=g.name.replace(/'/g,"&#39;");
       return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-        +'<span class="sv" onclick="showShipFromStock(\''+ v.qr +'\')" style="flex:1">'
+        +'<span class="sv" onclick="showShipFromStock(\''+v.qr+'\')" style="flex:1">'
         +label+' <span class="sv-qty">'+v.currentQty+'</span></span>'
         +'<button onclick="reprintQR(\''+v.qr+'\',\''+sb+'\',\''+sn+'\',\''+sl+'\')"'
         +' style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);'
@@ -512,7 +543,10 @@ function renderStock(data) {
           +'<div class="si-name">'+g.name+'</div>'
           +'<div class="si-code">入庫番号 '+g.orderCode+'</div>'
         +'</div>'
-        +'<span class="si-badge '+(totalQty>0?'in':'out')+'">'+(totalQty>0?'▲'+totalQty+'点':'在庫なし')+'</span>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'
+          +'<span class="si-badge '+(totalQty>0?'in':'out')+'">'+(totalQty>0?'▲'+totalQty+'点':'在庫なし')+'</span>'
+          +'<button onclick="event.stopPropagation();showDetail('+g.orderCode+')" style="background:none;border:1px solid var(--bd);border-radius:4px;color:var(--ac);font-size:10px;padding:3px 8px;cursor:pointer">詳細・編集</button>'
+        +'</div>'
       +'</div>'
       +'<div class="si-variants" style="display:block">'+variants+'</div>'
     +'</div>';
@@ -523,7 +557,7 @@ function filterStock() {
   var q = document.getElementById('searchInput').value.toLowerCase();
   if (!q) { renderStock(allStock); return; }
   var filtered = allStock.filter(function(g){
-    return (g.brand+g.name).toLowerCase().includes(q);
+    return (String(g.itemCode||"")+g.brand+g.name).toLowerCase().includes(q);
   });
   renderStock(filtered);
 }
@@ -585,9 +619,9 @@ async function submitOrder() {
     itemCode: document.getElementById('itemCode').value.trim(),
     supplier: document.getElementById('supplier').value.trim(),
     currency: document.getElementById('currency').value,
-    estPrice: price,
+    price: price,
     estRate: rate,
-    estPriceJPY: Math.round(price * rate),
+    priceJPY: Math.round(price * rate),
     estTax: tax,
     estCost: Math.round(price * rate + tax),
     memo: document.getElementById('orderMemo').value.trim(),
@@ -626,12 +660,15 @@ function startScan() {
   var area = document.getElementById('cameraArea');
   var video = document.getElementById('preview');
   area.style.display = 'block';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return;
+  }
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
     .then(function(stream) {
       scanStream = stream;
       video.srcObject = stream;
       video.play();
-      requestAnimationFrame(scanFrame);
+          setTimeout(scanFrame, 500);
     })
     .catch(function(e) {
       toast('カメラアクセス失敗: '+e.message, true);
@@ -641,21 +678,27 @@ function startScan() {
 
 function scanFrame() {
   var video = document.getElementById('preview');
+  if (!scanStream) return;
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    var canvas = document.createElement('canvas');
+    var canvas = document.getElementById('qrCanvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     var ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    var code = jsQR(img.data, img.width, img.height);
-    if (code) {
-      stopScan();
-      lookupQR(code.data);
+    try {
+      var code = jsQR(img.data, img.width, img.height);
+      if (code) {
+        stopScan();
+        lookupQR(code.data);
+        return;
+      }
+    } catch(e) {
       return;
     }
+  } else {
   }
-  if (scanStream) requestAnimationFrame(scanFrame);
+  setTimeout(scanFrame, 200);
 }
 
 function stopScan() {
@@ -844,9 +887,8 @@ async function loadTransit() {
   var el = document.getElementById('transitListFull');
   el.innerHTML = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:30px">読み込み中...</div>';
   try {
-    var r = await gasGet({action:'getList', all:'true', grouped:'true'});
+    var r = await gasGet({action:'getTransit'});
     if (r.status !== 'ok') throw new Error(r.message);
-    // 未入荷（入荷日なし）のものを抽出 → 全件から在庫中のものを表示
     renderTransit(r.data);
   } catch(e) { toast('取得失敗', true); }
 }
@@ -858,7 +900,6 @@ function renderTransit(data) {
     return;
   }
   el.innerHTML = data.map(function(g) {
-    var totalQty = g.variants ? g.variants.reduce(function(s,v){return s+v.currentQty;},0) : 0;
     return '<div class="order-item" onclick="showDetail('+g.orderCode+')" style="cursor:pointer">'
       +'<div class="oi-hd">'
         +'<div>'
@@ -866,7 +907,7 @@ function renderTransit(data) {
           +'<div class="oi-name">'+g.brand+' '+g.name+'</div>'
           +'<div class="oi-supplier">'+( g.supplier||'' )+'</div>'
         +'</div>'
-        +'<span class="si-badge in">▲'+totalQty+'点</span>'
+        +'<span class="si-badge" style="background:rgba(200,150,50,.15);color:#c89632">輸送中</span>'
       +'</div>'
       +'<div style="font-size:11px;color:var(--t3);margin-top:4px">タップして詳細・チェックリスト →</div>'
     +'</div>';
@@ -885,7 +926,7 @@ async function showDetail(code) {
     if (r.status !== 'ok') throw new Error(r.message);
     currentDetail = r.data;
     renderDetail(r.data);
-  } catch(e) { toast('取得失敗: '+e.message, true); }
+  } catch(e) { alert('エラー: '+e.message); }
 }
 
 function renderDetail(d) {
@@ -922,12 +963,15 @@ function renderDetail(d) {
 
   el.innerHTML =
     '<div class="card" style="margin-bottom:10px">'
-    +'<div class="card-t">📦 '+(d['ブランド']||'')+' / '+(d['商品名']||'')+'</div>'
-    +'<div style="font-size:13px;color:var(--t2)">入庫番号 <span style="color:var(--ac);font-family:DM Mono,monospace;font-weight:700">'+(d['入庫番号']||'')+'</span></div>'
-    +'<div style="font-size:12px;color:var(--t3);margin-top:4px">型番: '+(d['型番']||'—')+'　仕入れ先: '+(d['仕入れ先']||'—')+'</div>'
-    +'</div>'
-
+    +'<div class="card-t">📦 基本情報</div>'
+    +'<div class="form-row"><label>ブランド</label><input class="fi" type="text" id="det-brand" value="'+(d['ブランド']||'')+'"></div>'
+    +'<div class="form-row"><label>商品名</label><input class="fi" type="text" id="det-name" value="'+(d['商品名']||'')+'"></div>'
+    +'<div class="form-row"><label>型番</label><input class="fi fi-mono" type="text" id="det-itemcode" value="'+(d['型番']||'')+'"></div>'
+    +'<div class="form-row"><label>仕入れ先</label><input class="fi" type="text" id="det-supplier" value="'+(d['仕入れ先']||'')+'"></div>'
+    +'<div style="font-size:13px;color:var(--t2);margin-top:8px">入庫番号 <span style="color:var(--ac);font-family:DM Mono,monospace;font-weight:700">'+(d['入庫番号']||'')+'</span></div>'
+    +'<button class="btn btn-secondary" style="margin-top:8px" onclick="saveBasicInfo()">基本情報を保存する</button>'
     +'<div class="card" style="margin-bottom:10px">'
+    +'</div>'
     +'<div class="card-t">✅ チェックリスト</div>'
     +'<div class="form-row"><label>配送業者</label>'
     +'<select class="fi" id="det-carrier"><option value="">未設定</option>'+carrierOpts+'</select></div>'
@@ -947,7 +991,7 @@ function renderDetail(d) {
     +'<div class="card-t">💴 金額</div>'
     +'<div style="font-size:11px;color:var(--t2);margin-bottom:8px">概算</div>'
     +'<div class="fi-row" style="margin-bottom:10px">'
-    +'<div class="form-row"><label>現地価格</label><input class="fi fi-mono" type="number" id="det-estPrice" value="'+(d['概算現地価格']||0)+'"></div>'
+    +'<div class="form-row"><label>現地価格</label><input class="fi fi-mono" type="number" id="det-estPrice" value="'+(d['現地価格']||0)+'"></div>'
     +'<div class="form-row"><label>レート</label><input class="fi fi-mono" type="number" id="det-estRate" value="'+(d['概算レート']||163)+'"></div>'
     +'</div>'
     +'<div class="fi-row" style="margin-bottom:10px">'
@@ -992,6 +1036,22 @@ function toDateInput(val) {
   return '';
 }
 
+async function saveBasicInfo() {
+  if (!currentDetail) return;
+  var code = currentDetail['入庫番号'];
+  var data = {
+    brand:    document.getElementById('det-brand').value.trim(),
+    name:     document.getElementById('det-name').value.trim(),
+    itemCode: document.getElementById('det-itemcode').value.trim(),
+    supplier: document.getElementById('det-supplier').value.trim()
+  };
+  try {
+    var r = await gasGet({action:'updateOrder', code:code, data:JSON.stringify(data)});
+    if (r.status !== 'ok') throw new Error(r.message);
+    toast('✓ 基本情報を保存しました');
+  } catch(e) { toast('保存失敗: '+e.message, true); }
+}
+
 async function saveChecklist() {
   if (!currentDetail) return;
   var code = currentDetail['入庫番号'];
@@ -1020,14 +1080,13 @@ async function saveAmounts() {
   var fr = parseFloat(document.getElementById('det-fixedRate').value)||0;
   var ft = parseFloat(document.getElementById('det-fixedTax').value)||0;
   var data = {
-    estPrice: ep, estRate: er,
-    estPriceJPY: Math.round(ep*er), estTax: et, estCost: Math.round(ep*er+et),
+    price: ep, estRate: er,
+    priceJPY: Math.round(ep*er), estTax: et, estCost: Math.round(ep*er+et),
     fixedPrice: fp, fixedRate: fr,
     fixedPriceJPY: Math.round(fp*fr), fixedTax: ft, fixedCost: Math.round(fp*fr+ft)
   };
-  // 概算原価・確定原価を表示更新
   document.getElementById('det-estCost').value = Math.round(ep*er+et).toLocaleString();
-  if(fp>0) document.getElementById('det-fixedCost').value = Math.round(fp*fr+ft).toLocaleString();
+  if(fp>0 && fr>0) document.getElementById('det-fixedCost').value = Math.round(fp*fr+ft).toLocaleString();
   try {
     var r = await gasGet({action:'updateOrder', code:code, data:JSON.stringify(data)});
     if (r.status !== 'ok') throw new Error(r.message);
@@ -1041,7 +1100,7 @@ function toast(msg, isErr) {
   el.textContent = msg;
   el.className = 'toast'+(isErr?' error':'');
   el.classList.add('show');
-  setTimeout(function(){ el.classList.remove('show'); }, 2500);
+  setTimeout(function(){ el.classList.remove('show'); }, 10000);
 }
 </script>
 
