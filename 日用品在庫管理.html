@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>日用品 在庫管理</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1d2433;--sub:#6b7280;--line:#e3e6ea;--navy:#1F2A4A;--ok:#167a4a;--okbg:#e6f4ec;--ng:#b42318;--ngbg:#fdecea;--warn:#8a5a00;--warnbg:#fff4d6;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;font-size:15px;padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:var(--navy);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0;flex:1}
+.dot{width:9px;height:9px;border-radius:50%;background:#e5484d}.dot.ok{background:#3ddc84}
+nav{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:calc(42px + env(safe-area-inset-top,0px));z-index:4}
+nav button{flex:1;border:0;background:none;padding:11px 4px;font:inherit;font-size:13px;color:var(--sub);border-bottom:3px solid transparent;cursor:pointer}
+nav button.on{color:var(--navy);font-weight:700;border-bottom-color:var(--navy)}
+main{max-width:640px;margin:0 auto;padding:12px}
+.page{display:none}.page.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.scanbox{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:none;margin-bottom:10px}
+.scanbox video{width:100%;height:100%;object-fit:cover}
+.scanbox .frame{position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:10px}
+.row{display:flex;gap:8px;align-items:center}
+input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff;color:var(--ink)}
+.btn{font:inherit;border:0;border-radius:9px;padding:12px 14px;cursor:pointer;font-weight:700}
+.btn.p{background:var(--navy);color:#fff}.btn.g{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn.ok{background:var(--ok);color:#fff}.btn.ng{background:var(--ng);color:#fff}
+.btn.big{width:100%;font-size:16px;padding:15px}
+.btn:disabled{opacity:.5}
+.muted{color:var(--sub);font-size:12px}
+.res{border-radius:10px;padding:12px;margin-top:10px}
+.res.ok{background:var(--okbg)}.res.ng{background:var(--ngbg)}.res.warn{background:var(--warnbg)}
+.res b{font-size:16px}
+.name{font-weight:700;font-size:15px;margin:2px 0 6px}
+.stock{font-size:28px;font-weight:800;color:var(--navy)}
+.tag{display:inline-block;font-size:12px;padding:3px 8px;border-radius:999px;background:#eef1f6;margin:2px 4px 2px 0}
+.pend{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px}
+.log{font-size:13px;border-bottom:1px solid var(--line);padding:7px 0;display:flex;gap:8px;align-items:center}
+.log .q{font-weight:700;min-width:44px;text-align:right}
+.log .q.plus{color:var(--ok)}.log .q.minus{color:var(--ng)}
+.switch{display:flex;align-items:center;gap:8px;font-size:13px}
+.item{border-bottom:1px solid var(--line);padding:10px 0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;display:none;z-index:20;max-width:90vw}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:30;padding:16px}
+.modal.on{display:flex}.modal .box{background:#fff;border-radius:12px;padding:16px;width:min(460px,100%)}
+/* ラベル印刷 */
+#labelSheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lbl{border:1px dashed #bbb;border-radius:6px;padding:6px;text-align:center;font-size:10px;break-inside:avoid}
+.lbl .qr{display:flex;justify-content:center;margin:4px 0}
+.lbl .code{font-weight:800;font-size:13px}
+@media print{header,nav,.noprint{display:none!important}main{padding:0;max-width:none}.page{display:none!important}#page-labels{display:block!important}.card{border:0;padding:0}}
+</style>
+</head>
+<body>
+<header><span class="dot" id="dot"></span><h1>日用品 在庫管理</h1><button class="btn g" style="padding:6px 10px;font-size:12px" onclick="openGas()">接続</button></header>
+<nav>
+  <button data-p="ship" class="on" onclick="go('ship')">出荷</button>
+  <button data-p="recv" onclick="go('recv')">入荷検品</button>
+  <button data-p="stock" onclick="go('stock')">在庫</button>
+  <button data-p="labels" onclick="go('labels')">QRラベル</button>
+</nav>
+<main>
+
+<!-- 出荷 -->
+<section class="page on" id="page-ship">
+  <div class="card">
+    <div class="scanbox" id="box-ship"><video id="vid-ship" playsinline muted></video><div class="frame"></div></div>
+    <div class="row">
+      <button class="btn p" style="flex:1" id="cam-ship" onclick="toggleCam('ship')">📷 カメラで読む</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="code-ship" placeholder="販売コード（例：DS0002-5）" onkeydown="if(event.key==='Enter')manual('ship')">
+      <button class="btn g" onclick="manual('ship')">確認</button>
+    </div>
+    <div class="switch" style="margin-top:10px"><input type="checkbox" id="autoShip" style="width:auto" checked><label for="autoShip">読んだらすぐ出荷する（レジ方式）</label></div>
+    <div id="res-ship"></div>
+  </div>
+  <div class="card"><div class="row" style="justify-content:space-between"><b>最近の記録</b><button class="btn g" style="padding:6px 10px;font-size:12px" onclick="loadRecent()">更新</button></div><div id="recent"></div></div>
+</section>
+
+<!-- 入荷検品 -->
+<section class="page" id="page-recv">
+  <div class="card">
+    <div class="scanbox" id="box-recv"><video id="vid-recv" playsinline muted></video><div class="frame"></div></div>
+    <button class="btn p big" id="cam-recv" onclick="toggleCam('recv')">📷 商品のQRを読む</button>
+    <div class="row" style="margin-top:8px">
+      <input id="code-recv" placeholder="SKU か JANコード" onkeydown="if(event.key==='Enter')manual('recv')">
+      <button class="btn g" onclick="manual('recv')">確認</button>
+    </div>
+    <div class="muted" style="margin-top:6px">届いた商品のQR（SKU）を読むと、仕入履歴の「未入荷」の発注が出ます。届いた数を確認して確定してください。</div>
+    <div id="res-recv"></div>
+  </div>
+</section>
+
+<!-- 在庫 -->
+<section class="page" id="page-stock">
+  <div class="card">
+    <div class="row"><input id="q" placeholder="商品名・SKUで絞り込み" oninput="renderStock()"><button class="btn g" onclick="loadStock()">更新</button></div>
+    <div id="stockList" style="margin-top:6px"></div>
+  </div>
+</section>
+
+<!-- QRラベル -->
+<section class="page" id="page-labels">
+  <div class="card noprint">
+    <div class="muted">入荷用（SKU）は商品の置き場所や箱に、出荷用（販売コード）は梱包する場所に貼っておくと、読むだけで済みます。</div>
+    <div class="row" style="margin-top:8px">
+      <select id="lblKind" onchange="renderLabels()"><option value="all">すべて</option><option value="items">入荷用（SKU）</option><option value="units">出荷用（販売コード）</option></select>
+      <button class="btn g" onclick="loadLabels()">更新</button>
+      <button class="btn p" onclick="window.print()">印刷</button>
+    </div>
+  </div>
+  <div class="card"><div id="labelSheet"></div></div>
+</section>
+</main>
+
+<div class="modal" id="gasModal"><div class="box">
+  <b>GASのURLを入れて接続</b>
+  <div class="muted" style="margin:6px 0">ウェブアプリとしてデプロイしたURL（…/exec）</div>
+  <input id="gasUrl" placeholder="https://script.google.com/macros/s/…/exec">
+  <div class="muted" style="margin:10px 0 6px">合言葉（GASのスクリプト プロパティ APP_KEY と同じもの）</div>
+  <input id="gasKey" type="password" placeholder="合言葉">
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn g" onclick="closeGas()">閉じる</button><button class="btn p" onclick="connect()">接続</button></div>
+</div></div>
+<div id="toast"></div>
+<canvas id="cv" style="display:none"></canvas>
+
+<script>
+var GAS = '', KEY = '';
+try { GAS = localStorage.getItem('drug_inv_gas') || ''; KEY = localStorage.getItem('drug_inv_key') || ''; } catch(e) {}
+var STOCK = [], LABELS = null;
+
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function toast(m,err){var t=$('toast');t.textContent=m;t.style.background=err?'#b42318':'#222';t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none';},2600);}
+function beep(ok){try{var a=new (window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator();var g=a.createGain();o.frequency.value=ok?1320:330;g.gain.value=0.08;o.connect(g);g.connect(a.destination);o.start();setTimeout(function(){o.stop();a.close();},ok?120:350);}catch(e){} if(navigator.vibrate)navigator.vibrate(ok?60:[80,60,80]);}
+
+async function api(params){
+  if(!GAS) throw new Error('未接続です。右上の「接続」からGASのURLを入れてください');
+  params=Object.assign({key:KEY},params);
+  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+  var r=await fetch(GAS+(GAS.indexOf('?')>=0?'&':'?')+qs);
+  var j=await r.json();
+  if(j.status==='error') throw new Error(j.message);
+  return j;
+}
+function openGas(){$('gasUrl').value=GAS;$('gasKey').value=KEY;$('gasModal').classList.add('on');}
+function closeGas(){$('gasModal').classList.remove('on');}
+async function connect(){
+  var u=$('gasUrl').value.trim(),k=$('gasKey').value.trim(); if(!u||!k){toast('URLと合言葉を入れてください',true);return;}
+  try{GAS=u;KEY=k;await api({action:'init'});try{localStorage.setItem('drug_inv_gas',u);localStorage.setItem('drug_inv_key',k);}catch(e){}$('dot').classList.add('ok');closeGas();toast('接続しました');loadRecent();}
+  catch(e){toast('接続できません：'+e.message,true);}
+}
+
+function go(p){
+  stopCam();
+  document.querySelectorAll('.page').forEach(function(s){s.classList.remove('on');});
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('on',b.dataset.p===p);});
+  $('page-'+p).classList.add('on');
+  if(p==='stock')loadStock(); if(p==='labels'&&!LABELS)loadLabels(); if(p==='ship')loadRecent();
+}
+
+// ===== カメラ（jsQR） =====
+var cam={stream:null,mode:null,raf:null,last:'',lastAt:0,busy:false};
+async function toggleCam(mode){ if(cam.stream&&cam.mode===mode){stopCam();return;} stopCam(); await startCam(mode); }
+async function startCam(mode){
+  try{
+    var s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    cam.stream=s;cam.mode=mode;
+    var v=$('vid-'+mode);v.srcObject=s;await v.play();
+    $('box-'+mode).style.display='block';$('cam-'+mode).textContent='■ カメラを止める';
+    tick();
+  }catch(e){toast('カメラを起動できません：'+e.message,true);}
+}
+function stopCam(){
+  if(cam.raf)cancelAnimationFrame(cam.raf);
+  if(cam.stream){cam.stream.getTracks().forEach(function(t){t.stop();});}
+  if(cam.mode){$('box-'+cam.mode).style.display='none';$('cam-'+cam.mode).textContent=cam.mode==='ship'?'📷 カメラで読む':'📷 商品のQRを読む';}
+  cam.stream=null;cam.mode=null;
+}
+function tick(){
+  if(!cam.stream)return;
+  var v=$('vid-'+cam.mode);
+  if(v.readyState===v.HAVE_ENOUGH_DATA&&!cam.busy){
+    var c=$('cv'),w=v.videoWidth,h=v.videoHeight,sc=Math.min(1,640/w);
+    c.width=w*sc;c.height=h*sc;var ctx=c.getContext('2d');ctx.drawImage(v,0,0,c.width,c.height);
+    var img=ctx.getImageData(0,0,c.width,c.height);
+    var q=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+    if(q&&q.data){
+      var code=q.data.trim(),now=Date.now();
+      // 同じコードを続けて読んでしまうのを防ぐ（2.5秒）
+      if(!(code===cam.last&&now-cam.lastAt<2500)){cam.last=code;cam.lastAt=now;onCode(cam.mode,code);}
+    }
+  }
+  cam.raf=requestAnimationFrame(tick);
+}
+function manual(mode){var v=$('code-'+mode).value.trim();if(v){onCode(mode,v);$('code-'+mode).value='';}}
+function onCode(mode,code){ if(mode==='ship')shipScan(code); else recvScan(code); }
+
+// ===== 出荷 =====
+async function shipScan(code){
+  cam.busy=true;
+  try{
+    if($('autoShip').checked){ await doShip(code,1,false); }
+    else{
+      var d=(await api({action:'lookup',code:code})).data;
+      if(!d.unit){beep(false);$('res-ship').innerHTML='<div class="res ng">「'+esc(code)+'」は出荷用（販売コード）ではありません。セットや単品のQRを読んでください。</div>';return;}
+      beep(true);
+      $('res-ship').innerHTML='<div class="res warn"><div class="name">'+esc(d.name)+'</div>'+
+        '<div>'+esc(d.unit.label)+'（入数'+d.unit.qty+'）／在庫 '+d.stock+'</div>'+
+        '<div class="row" style="margin-top:8px"><input type="number" id="shipSets" value="1" min="1" style="width:90px"><span class="muted">セット</span>'+
+        '<button class="btn ok" style="flex:1" onclick="doShip(\''+esc(code)+'\',$(\'shipSets\').value,false)">出荷する</button></div></div>';
+    }
+  }catch(e){beep(false);$('res-ship').innerHTML='<div class="res ng">'+esc(e.message)+'</div>';}
+  finally{cam.busy=false;}
+}
+async function doShip(code,sets,force){
+  var r=await api({action:'ship',code:code,sets:sets,force:force?'1':'0'});
+  if(r.status==='short'){
+    beep(false);
+    $('res-ship').innerHTML='<div class="res ng"><b>在庫が足りません</b><div>必要 '+r.data.need+'／在庫 '+r.data.stock+'</div>'+
+      '<div class="muted">実物があるなら、在庫の数がずれています。このまま出荷して、あとで棚卸で直せます。</div>'+
+      '<button class="btn ng" style="margin-top:8px" onclick="doShip(\''+esc(code)+'\','+Number(sets)+',true)">それでも出荷する</button></div>';
+    return;
+  }
+  var d=r.data;beep(true);
+  $('res-ship').innerHTML='<div class="res ok"><b>出荷：'+esc(d.label)+(d.sets>1?' ×'+d.sets:'')+'（−'+d.out+'）</b><div>'+esc(d.sku)+' の在庫 → <span style="font-weight:800">'+d.stock+'</span></div>'+
+    '<button class="btn g" style="margin-top:8px" onclick="undo(\''+esc(d.id)+'\',\'ship\')">取り消す</button></div>';
+  loadRecent();
+}
+async function undo(id,mode){
+  if(!confirm('この記録を取り消しますか？'))return;
+  try{var d=(await api({action:'undo',id:id})).data;toast('取り消しました（在庫 '+d.stock+'）');$('res-'+(mode||'ship')).innerHTML='';loadRecent();if(mode==='stock')loadStock();}
+  catch(e){toast(e.message,true);}
+}
+async function loadRecent(){
+  if(!GAS)return;
+  try{
+    var list=(await api({action:'recent',n:15})).data;
+    $('recent').innerHTML=list.length?list.map(function(l){
+      var q=Number(l.qty)||0;
+      return '<div class="log"><span class="muted" style="min-width:76px">'+esc(l.time)+'</span><span class="tag">'+esc(l.type)+'</span><span style="flex:1">'+esc(l.code)+'</span><span class="q '+(q>=0?'plus':'minus')+'">'+(q>0?'+':'')+q+'</span>'+
+        (String(l.type).indexOf('取消')<0?'<button class="btn g" style="padding:4px 8px;font-size:11px" onclick="undo(\''+esc(l.id)+'\')">取消</button>':'')+'</div>';
+    }).join(''):'<div class="muted">まだ記録はありません</div>';
+  }catch(e){$('recent').innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+}
+
+// ===== 入荷検品 =====
+async function recvScan(code){
+  cam.busy=true;
+  try{
+    var d=(await api({action:'lookup',code:code})).data;
+    beep(true);stopCam();
+    var h='<div class="res '+(d.pending.length?'warn':'ng')+'"><div class="name">'+esc(d.name)+'</div><div class="muted">'+esc(d.sku)+'／今の在庫 '+d.stock+'</div>';
+    if(!d.pending.length){
+      h+='<div style="margin-top:8px">未入荷の発注がありません。先に仕入履歴に発注を書いてから、もう一度読んでください。</div>';
+    }else{
+      h+=d.pending.map(function(p){
+        return '<div class="pend"><div><b>発注 '+esc(p.date)+'</b>　'+esc(p.supplier)+(p.expiry?'　期限 '+esc(p.expiry):'')+'</div>'+
+          '<div class="row" style="margin-top:6px"><span class="muted" style="white-space:nowrap">発注 '+p.qty+'／届いた数</span><input type="number" min="0" id="rq'+p.row+'" value="'+p.qty+'" style="width:90px">'+
+          '<button class="btn ok" style="flex:1" onclick="doRecv('+p.row+','+p.qty+')">検品OK・入荷</button></div></div>';
+      }).join('');
+    }
+    $('res-recv').innerHTML=h+'</div>';
+  }catch(e){beep(false);$('res-recv').innerHTML='<div class="res ng">'+esc(e.message)+'</div>';}
+  finally{cam.busy=false;}
+}
+async function doRecv(row,ordered){
+  var q=Number($('rq'+row).value);
+  if(!(q>=0)){toast('届いた数を入れてください',true);return;}
+  if(q!==ordered&&!confirm('発注 '+ordered+' に対して届いた数が '+q+' です。この数で入荷しますか？（差異として記録されます）'))return;
+  try{
+    var d=(await api({action:'receive',row:row,qty:q})).data;beep(true);
+    $('res-recv').innerHTML='<div class="res ok"><b>入荷：'+esc(d.sku)+'（+'+d.qty+'）</b><div>在庫 → <span style="font-weight:800">'+d.stock+'</span>'+(d.diff?'　<span class="tag">差異 '+(d.diff>0?'+':'')+d.diff+'</span>':'')+'</div>'+
+      (d.id?'<button class="btn g" style="margin-top:8px" onclick="undo(\''+esc(d.id)+'\',\'recv\')">取り消す</button>':'')+'</div>';
+  }catch(e){beep(false);toast(e.message,true);}
+}
+
+// ===== 在庫 =====
+async function loadStock(){
+  if(!GAS){$('stockList').innerHTML='<div class="muted">未接続です</div>';return;}
+  $('stockList').innerHTML='<div class="muted">読み込み中…</div>';
+  try{STOCK=(await api({action:'stock'})).data;renderStock();}catch(e){$('stockList').innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+}
+function renderStock(){
+  var q=$('q').value.trim().toLowerCase();
+  var list=STOCK.filter(function(s){return !q||(s.name+s.sku).toLowerCase().indexOf(q)>=0;});
+  $('stockList').innerHTML=list.length?list.map(function(s){
+    return '<div class="item"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="name">'+esc(s.name)+'</div><div class="muted">'+esc(s.sku)+(s.status?'／'+esc(s.status):'')+(s.pending?'／未入荷 '+s.pending:'')+'</div></div><div class="stock">'+s.stock+'</div></div>'+
+      '<div>'+s.units.map(function(u){return '<span class="tag">'+esc(u.label)+'：あと'+u.canMake+'</span>';}).join('')+'</div>'+
+      '<button class="btn g" style="margin-top:6px;padding:6px 10px;font-size:12px" onclick="adjust(\''+esc(s.sku)+'\','+s.stock+')">棚卸（実数を入れる）</button></div>';
+  }).join(''):'<div class="muted">該当なし</div>';
+}
+async function adjust(sku,now){
+  var v=prompt(sku+' の実際の数（今の帳簿：'+now+'）');if(v===null)return;
+  var n=Number(v);if(!(n>=0)||Math.floor(n)!==n){toast('0以上の整数で入れてください',true);return;}
+  try{var d=(await api({action:'adjust',sku:sku,actual:n,memo:'棚卸'})).data;toast(d.diff?'調整しました（'+(d.diff>0?'+':'')+d.diff+'）':'ずれはありません');loadStock();}
+  catch(e){toast(e.message,true);}
+}
+
+// ===== QRラベル =====
+async function loadLabels(){
+  if(!GAS){$('labelSheet').innerHTML='<div class="muted">未接続です</div>';return;}
+  try{LABELS=(await api({action:'labels'})).data;renderLabels();}catch(e){$('labelSheet').innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
+}
+function renderLabels(){
+  if(!LABELS)return;
+  var k=$('lblKind').value,list=[];
+  if(k!=='units')list=list.concat(LABELS.items);
+  if(k!=='items')list=list.concat(LABELS.units);
+  var sh=$('labelSheet');sh.innerHTML='';
+  list.forEach(function(l){
+    var d=document.createElement('div');d.className='lbl';
+    d.innerHTML='<div class="muted" style="font-size:9px">'+esc(l.kind)+'</div><div class="qr"></div><div class="code">'+esc(l.code)+'</div>'+(l.sub?'<div style="font-weight:700">'+esc(l.sub)+'</div>':'')+'<div>'+esc(String(l.title).slice(0,28))+'</div>';
+    sh.appendChild(d);
+    new QRCode(d.querySelector('.qr'),{text:l.code,width:96,height:96,correctLevel:QRCode.CorrectLevel.M});
+  });
+}
+
+if(GAS&&KEY){api({action:'init'}).then(function(){$('dot').classList.add('ok');loadRecent();}).catch(function(){});}
+else setTimeout(openGas,300);
+</script>
+</body>
+</html>
