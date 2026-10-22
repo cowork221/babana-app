@@ -22,6 +22,8 @@ main{max-width:640px;margin:0 auto;padding:12px}
 .scanbox{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:none;margin-bottom:10px}
 .scanbox video{width:100%;height:100%;object-fit:cover}
 .scanbox .frame{position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:10px}
+.scanbox .hint{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:13px;text-align:center;padding:8px}
+.readflash{background:var(--okbg);border:2px solid var(--ok);border-radius:10px;padding:10px;margin-top:10px;font-weight:700}
 .row{display:flex;gap:8px;align-items:center}
 input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff;color:var(--ink)}
 .btn{font:inherit;border:0;border-radius:9px;padding:12px 14px;cursor:pointer;font-weight:700}
@@ -66,7 +68,7 @@ input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radiu
 <!-- 出荷 -->
 <section class="page on" id="page-ship">
   <div class="card">
-    <div class="scanbox" id="box-ship"><video id="vid-ship" playsinline muted></video><div class="frame"></div></div>
+    <div class="scanbox" id="box-ship"><video id="vid-ship" playsinline muted></video><div class="frame"></div><div class="hint">QRを枠に入れてください。読み取るとカメラは自動で止まります</div></div>
     <div class="row">
       <button class="btn p" style="flex:1" id="cam-ship" onclick="toggleCam('ship')">📷 カメラで読む</button>
     </div>
@@ -83,7 +85,7 @@ input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radiu
 <!-- 入荷検品 -->
 <section class="page" id="page-recv">
   <div class="card">
-    <div class="scanbox" id="box-recv"><video id="vid-recv" playsinline muted></video><div class="frame"></div></div>
+    <div class="scanbox" id="box-recv"><video id="vid-recv" playsinline muted></video><div class="frame"></div><div class="hint">QRを枠に入れてください。読み取るとカメラは自動で止まります</div></div>
     <button class="btn p big" id="cam-recv" onclick="toggleCam('recv')">📷 商品のQRを読む</button>
     <div class="row" style="margin-top:8px">
       <input id="code-recv" placeholder="SKU か JANコード" onkeydown="if(event.key==='Enter')manual('recv')">
@@ -191,7 +193,14 @@ function tick(){
     if(q&&q.data){
       var code=q.data.trim(),now=Date.now();
       // 同じコードを続けて読んでしまうのを防ぐ（2.5秒）
-      if(!(code===cam.last&&now-cam.lastAt<2500)){cam.last=code;cam.lastAt=now;onCode(cam.mode,code);}
+      if(!(code===cam.last&&now-cam.lastAt<2500)){
+        cam.last=code;cam.lastAt=now;
+        var m=cam.mode;
+        stopCam(); // 1回読んだらすぐカメラを止める（同じQRを2回読まないように）
+        $('res-'+m).innerHTML='<div class="readflash">読み取りました：'+esc(code)+'　処理中…</div>';
+        onCode(m,code);
+        return;
+      }
     }
   }
   cam.raf=requestAnimationFrame(tick);
@@ -227,7 +236,7 @@ async function doShip(code,sets,force){
   }
   var d=r.data;beep(true);
   $('res-ship').innerHTML='<div class="res ok"><b>出荷：'+esc(d.label)+(d.sets>1?' ×'+d.sets:'')+'（−'+d.out+'）</b><div>'+esc(d.sku)+' の在庫 → <span style="font-weight:800">'+d.stock+'</span></div>'+
-    '<button class="btn g" style="margin-top:8px" onclick="undo(\''+esc(d.id)+'\',\'ship\')">取り消す</button></div>';
+    '<div class="row" style="margin-top:8px"><button class="btn p" style="flex:1" onclick="toggleCam(\'ship\')">📷 次を読む</button><button class="btn g" onclick="undo(\''+esc(d.id)+'\',\'ship\')">取り消す</button></div></div>';
   loadRecent();
 }
 async function undo(id,mode){
