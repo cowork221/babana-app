@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BUYMA 仕入れ先比較 v7</title>
+<title>BUYMA 仕入れ先比較 v8</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -62,6 +62,46 @@ body {
   font-family: 'Noto Sans JP', sans-serif; transition: border-color .2s, color .2s;
 }
 .btn-sm:hover { border-color: var(--ac); color: var(--ac); }
+
+/* ===== 為替換算ウィジェット ===== */
+.fx-bar {
+  background: var(--sf2); border-bottom: 1px solid var(--bd);
+  padding: 6px 16px; display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; flex-shrink: 0;
+}
+.fx-block {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.fx-label { font-size: 10px; color: var(--t2); white-space: nowrap; }
+.fx-cur {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--ac); padding: 4px 7px; font-size: 11px; font-weight: 700;
+  font-family: 'DM Mono', monospace;
+}
+.fx-input {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--tx); padding: 4px 7px; font-size: 12px; width: 80px;
+  font-family: 'DM Mono', monospace; outline: none; text-align: right;
+}
+.fx-input:focus { border-color: var(--ac); }
+.fx-select {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--tx); padding: 4px 7px; font-size: 11px;
+  font-family: inherit; outline: none;
+}
+.fx-select:focus { border-color: var(--ac); }
+.fx-result {
+  font-size: 12px; color: var(--ac2); font-family: 'DM Mono', monospace;
+  font-weight: 700; min-width: 80px;
+}
+.fx-rate { font-size: 10px; color: var(--t2); }
+.fx-btn {
+  background: none; border: 1px solid var(--bd); border-radius: 4px;
+  color: var(--t2); padding: 3px 8px; font-size: 10px; cursor: pointer;
+  font-family: inherit;
+}
+.fx-btn:hover { border-color: var(--ac); color: var(--ac); }
+.fx-sep { color: var(--t3); font-size: 14px; }
 
 /* ===== レートバー ===== */
 .rb {
@@ -324,7 +364,76 @@ input[type=range]::-webkit-slider-thumb {
   </div>
   <div class="rb-item">
     <label>通関レート</label>
-    <input type="number" id="rCus" value="160" step="0.01" min="1" oninput="scheduleCalc()">
+    <button type="button" id="cusBtn" onclick="showCustomsModal()"
+      style="background:#232a27;color:#e8e6df;border:1px solid #3a423e;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;min-width:70px;">
+      設定
+    </button>
+  </div>
+</div>
+
+<!-- 通関レート設定モーダル（EUR/USD/GBP × 期間A/B） -->
+<div class="modal-bg" id="customsModal">
+  <div class="modal">
+    <div class="modal-t">⚙ 通関レート設定（期間A/B）</div>
+    <div class="modal-note" style="margin-bottom:10px;">
+      税関発表の通関レートを、通貨ごと・期間ごとに入力してください。両方の期間の結果を、常に並べて比較表示します。
+    </div>
+    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px;">
+      <div></div>
+      <input class="modal-inp" type="text" id="cusLabelA" placeholder="期間Aの名称（例: 8/30〜9/5）" style="margin:0;">
+      <input class="modal-inp" type="text" id="cusLabelB" placeholder="期間Bの名称（例: 9/6〜9/12）" style="margin:0;">
+    </div>
+    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px;">
+      <label style="font-size:13px;">EUR</label>
+      <input class="modal-inp" type="number" id="cusEUR_A" step="0.01" placeholder="期間A" style="margin:0;">
+      <input class="modal-inp" type="number" id="cusEUR_B" step="0.01" placeholder="期間B" style="margin:0;">
+    </div>
+    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px;">
+      <label style="font-size:13px;">USD</label>
+      <input class="modal-inp" type="number" id="cusUSD_A" step="0.01" placeholder="期間A" style="margin:0;">
+      <input class="modal-inp" type="number" id="cusUSD_B" step="0.01" placeholder="期間B" style="margin:0;">
+    </div>
+    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;align-items:center;margin-bottom:10px;">
+      <label style="font-size:13px;">GBP</label>
+      <input class="modal-inp" type="number" id="cusGBP_A" step="0.01" placeholder="期間A" style="margin:0;">
+      <input class="modal-inp" type="number" id="cusGBP_B" step="0.01" placeholder="期間B" style="margin:0;">
+    </div>
+    <div class="modal-btns">
+      <button onclick="hideCustomsModal()">閉じる</button>
+      <button onclick="applyCustomsRates()">適用</button>
+    </div>
+  </div>
+</div>
+
+<!-- 為替換算バー -->
+<div class="fx-bar">
+  <!-- EUR固定 -->
+  <div class="fx-block">
+    <span class="fx-cur">EUR</span>
+    <input class="fx-input" type="number" id="fx1-foreign" placeholder="EUR" oninput="fx1Calc('foreign')">
+    <span class="fx-label">＝</span>
+    <input class="fx-input" type="number" id="fx1-jpy" placeholder="JPY" oninput="fx1Calc('jpy')">
+    <span class="fx-label">円</span>
+    <span class="fx-rate" id="fx1-rate">—</span>
+    <button class="fx-btn" onclick="fxFetch(1,'EUR')">↻</button>
+  </div>
+  <span class="fx-sep">|</span>
+  <!-- フリー換算 -->
+  <div class="fx-block">
+    <select class="fx-select" id="fx2-cur" onchange="fxFetch(2,this.value)">
+      <option value="USD">USD</option>
+      <option value="GBP">GBP</option>
+      <option value="CHF">CHF</option>
+      <option value="EUR">EUR</option>
+      <option value="CNY">CNY</option>
+      <option value="KRW">KRW</option>
+    </select>
+    <input class="fx-input" type="number" id="fx2-foreign" placeholder="外貨" oninput="fx2Calc('foreign')">
+    <span class="fx-label">＝</span>
+    <input class="fx-input" type="number" id="fx2-jpy" placeholder="JPY" oninput="fx2Calc('jpy')">
+    <span class="fx-label">円</span>
+    <span class="fx-rate" id="fx2-rate">—</span>
+    <button class="fx-btn" onclick="fxFetch(2,document.getElementById('fx2-cur').value)">↻</button>
   </div>
 </div>
 
@@ -407,6 +516,85 @@ input[type=range]::-webkit-slider-thumb {
 // 定数・初期データ
 // =====================================================
 
+// ===== 為替換算ウィジェット =====
+var fxRates = { 1: null, 2: null };
+
+async function fxFetch(no, cur) {
+  var rateEl = document.getElementById('fx' + no + '-rate');
+  rateEl.textContent = '取得中...';
+  try {
+    var res = await fetch('https://api.frankfurter.dev/v1/latest?from=' + cur + '&to=JPY');
+    var data = await res.json();
+    var rate = data.rates.JPY;
+    fxRates[no] = rate;
+    rateEl.textContent = '@' + Math.round(rate * 100) / 100;
+    // 外貨入力があれば再計算
+    var foreignEl = document.getElementById('fx' + no + '-foreign');
+    if (foreignEl.value) {
+      no === 1 ? fx1Calc('foreign') : fx2Calc('foreign');
+    }
+  } catch(e) {
+    rateEl.textContent = '取得失敗';
+  }
+}
+
+function fx1Calc(dir) {
+  var rate = fxRates[1];
+  if (!rate) return;
+  var f = document.getElementById('fx1-foreign');
+  var j = document.getElementById('fx1-jpy');
+  if (dir === 'foreign' && f.value) {
+    j.value = Math.round(parseFloat(f.value) * rate);
+  } else if (dir === 'jpy' && j.value) {
+    f.value = Math.round(parseFloat(j.value) / rate * 100) / 100;
+  }
+}
+
+function fx2Calc(dir) {
+  var rate = fxRates[2];
+  if (!rate) return;
+  var f = document.getElementById('fx2-foreign');
+  var j = document.getElementById('fx2-jpy');
+  if (dir === 'foreign' && f.value) {
+    j.value = Math.round(parseFloat(f.value) * rate);
+  } else if (dir === 'jpy' && j.value) {
+    f.value = Math.round(parseFloat(j.value) / rate * 100) / 100;
+  }
+}
+
+// 起動時にEURとUSDを自動取得
+(function() {
+  fxFetch(1, 'EUR');
+  fxFetch(2, 'USD');
+  refreshAutoRates();
+})();
+
+// =====================================================
+// 通貨ごとのCCレート自動取得
+// ・各仕入れ先は自分の通貨（EUR/USD/GBP/CHF）に対応した
+//   レートで計算する（1つのレートを全仕入れ先に使い回さない）
+// ・CCレート = (為替レート + 3円) × 1.035
+// ・通関レートは自動計算しない（税関発表の実際の数字を手入力する。期間A/B設定モーダル参照）
+// =====================================================
+var AUTO_CUR_LIST = ['EUR', 'USD', 'GBP', 'CHF'];
+
+async function refreshAutoRates() {
+  for (var i = 0; i < AUTO_CUR_LIST.length; i++) {
+    var cur = AUTO_CUR_LIST[i];
+    try {
+      var res = await fetch('https://api.frankfurter.dev/v1/latest?from=' + cur + '&to=JPY');
+      var data = await res.json();
+      var rate = data.rates.JPY;
+      var cc = Math.round(((rate + 3) * 1.035) * 100) / 100;
+      APP.ccRates[cur] = cc;
+    } catch (e) {
+      // 取得失敗時は既存のAPP.rates（GAS由来）／DEFAULT_RATESにフォールバックするため、ここでは何もしない
+    }
+  }
+  onCurChange(); // 上部の表示欄も、選択中の通貨の最新自動レートに更新
+  scheduleCalc();
+}
+
 // 通貨別デフォルトレート
 var DEFAULT_RATES = { EUR: 163, USD: 150, GBP: 192, CHF: 170 };
 
@@ -449,7 +637,11 @@ var CATS = [
 // アプリ状態（グローバル変数を最小化）
 // =====================================================
 var APP = {
-  rates: Object.assign({}, DEFAULT_RATES), // 通貨レート
+  rates: Object.assign({}, DEFAULT_RATES), // 通貨レート（GASの為替レートシート由来。自動取得が失敗した時のフォールバック用）
+  ccRates: {},   // 通貨ごとの自動取得CCレート {EUR: 217.6, USD: 159.9, ...}（為替+3円 → ×1.035）
+  // 通関レート（手動入力・期間A/Bの2本立て）。EUR/USD/GBPのみ対応、他通貨はrCC-3ではなく手入力なしの扱い。
+  customsRates: { EUR: { A: null, B: null }, USD: { A: null, B: null }, GBP: { A: null, B: null } },
+  customsLabels: { A: '', B: '' },
   suppliers: [],        // 仕入れ先リスト [{...supplierObj, key, epa}]
   checkedKeys: new Set(), // チェック済みキー
   shippingData: {       // GASから取得した送料データ
@@ -604,8 +796,9 @@ async function connectGAS() {
     try { localStorage.setItem('buyma_gas_url_v7', url); } catch(e) {}
     hideModal();
 
-    // 現在選択中の通貨のレートを反映
-    onCurChange();
+    // 現在選択中の通貨のレートを、自動取得し直して反映する
+    // （通貨の自動計算レートを、GASシート由来の値で上書きしないため）
+    refreshAutoRates();
 
   } catch(ex) {
     dot.className = 'dot err';
@@ -686,16 +879,44 @@ function getTariffRate(sup) {
 // =====================================================
 function onCurChange() {
   var cur = document.getElementById('curSel').value;
-  var r = APP.rates[cur] || DEFAULT_RATES[cur] || 163;
+  // CCレートは自動取得のみを使う（GASシートの為替レート値は参照しない）。
+  // まだ自動取得が完了していない場合だけ、暫定値としてDEFAULT_RATESを使う。
+  var r = APP.ccRates[cur] || DEFAULT_RATES[cur] || 163;
   document.getElementById('rCC').value  = r;
-  document.getElementById('rCus').value = Math.round((r - 3) * 100) / 100;
   scheduleCalc();
 }
 
 function onRateInput() {
-  var rCC = parseFloat(document.getElementById('rCC').value) || 163;
-  // CCレート変更時に通関レートも自動更新（-3円）
-  document.getElementById('rCus').value = Math.round((rCC - 3) * 100) / 100;
+  scheduleCalc();
+}
+
+// =====================================================
+// 通関レート設定モーダル（期間A/B）
+// =====================================================
+function showCustomsModal() {
+  document.getElementById('cusLabelA').value = APP.customsLabels.A;
+  document.getElementById('cusLabelB').value = APP.customsLabels.B;
+  ['EUR', 'USD', 'GBP'].forEach(function (cur) {
+    document.getElementById('cus' + cur + '_A').value = APP.customsRates[cur].A || '';
+    document.getElementById('cus' + cur + '_B').value = APP.customsRates[cur].B || '';
+  });
+  document.getElementById('customsModal').classList.add('show');
+}
+
+function hideCustomsModal() {
+  document.getElementById('customsModal').classList.remove('show');
+}
+
+function applyCustomsRates() {
+  APP.customsLabels.A = document.getElementById('cusLabelA').value.trim() || '期間A';
+  APP.customsLabels.B = document.getElementById('cusLabelB').value.trim() || '期間B';
+  ['EUR', 'USD', 'GBP'].forEach(function (cur) {
+    var a = parseFloat(document.getElementById('cus' + cur + '_A').value);
+    var b = parseFloat(document.getElementById('cus' + cur + '_B').value);
+    APP.customsRates[cur].A = isNaN(a) ? null : a;
+    APP.customsRates[cur].B = isNaN(b) ? null : b;
+  });
+  hideCustomsModal();
   scheduleCalc();
 }
 
@@ -909,6 +1130,23 @@ function createCard(sup) {
 
     swWrap.appendChild(swLbl);
     swWrap.appendChild(swSel);
+
+    // 送料の手入力欄（入力すると、プルダウンの選択より優先される）
+    var mLbl = document.createElement('div');
+    mLbl.className = 'in-lbl-full';
+    mLbl.style.marginTop = '5px';
+    mLbl.textContent = '送料を手入力（' + sup.currency + '）※入力するとこちらを優先';
+    var mInp = document.createElement('input');
+    mInp.className = 'in-f';
+    mInp.type = 'number';
+    mInp.id = 'swm_' + key;
+    mInp.placeholder = '空欄＝プルダウンの送料';
+    mInp.step = '0.01';
+    mInp.min = '0';
+    mInp.addEventListener('input', scheduleCalc);
+    swWrap.appendChild(mLbl);
+    swWrap.appendChild(mInp);
+
     inp.appendChild(swWrap);
   }
 
@@ -958,8 +1196,7 @@ function setEpa(key, val) {
 function calcShipping(sup, rawPrice, rCC) {
   var type = sup.shippingType;
 
-  // DDP：送料は価格に込み（0で返す）
-  if (sup.ddp) return { cost: 0, label: 'DDP込み' };
+  // DDP：関税は発送人負担だが送料は別途計算（DDPはそのまま通常の送料計算へ）
 
   if (type === 'free') {
     return { cost: 0, label: '無料' };
@@ -987,6 +1224,13 @@ function calcShipping(sup, rawPrice, rCC) {
   }
 
   if (type === 'size' || type === 'weight') {
+    // 手入力欄に値があれば、それを優先する
+    var manEl = document.getElementById('swm_' + sup.key);
+    if (manEl && manEl.value !== '' && !isNaN(parseFloat(manEl.value))) {
+      var mc = parseFloat(manEl.value);
+      return { cost: mc, label: '手入力: ' + mc + ' ' + sup.currency };
+    }
+
     // 選択セレクトから送料を取得
     var selEl = document.getElementById('sw_' + sup.key);
     if (!selEl || selEl.value === '') return { cost: 0, label: '(未選択)' };
@@ -1013,7 +1257,6 @@ function scheduleCalc() {
 
 function runCalc() {
   var rCC     = parseFloat(document.getElementById('rCC').value)  || 163;
-  var rCus    = parseFloat(document.getElementById('rCus').value) || rCC;
   var profMin = (parseInt(document.getElementById('slMin').value, 10) || 10) / 100;
   var profTgt = (parseInt(document.getElementById('slTgt').value, 10) || 20) / 100;
   var BUYMA_FEE = 0.077;
@@ -1025,6 +1268,43 @@ function runCalc() {
   function fmt(n) { return '¥' + Math.round(n).toLocaleString(); }
   function sellPrice(total, profit) {
     return Math.ceil((total / (1 - profit)) / (1 - BUYMA_FEE) / 100) * 100;
+  }
+
+  // 指定した通関レート(fxCus)で、関税・消費税・総原価・推奨販売価格一式を計算する
+  function calcPeriod(sup, netP, fxCus, netJPY, shipCus, shipJPY, isDDP) {
+    if (fxCus === null) return null; // その通貨・期間のレートが未設定
+    var tariffRate = getTariffRate(sup);
+    var tariffJPY = 0, cTax = 0;
+    if (isDDP) {
+      tariffJPY = 0; cTax = 0;
+    } else if (tariffRate !== null) {
+      var base = netP * fxCus + shipCus;
+      tariffJPY = base * (tariffRate / 100);
+      cTax = (base + tariffJPY) * 0.1;
+    } else {
+      var base2 = netP * fxCus + shipCus;
+      tariffJPY = Math.max(base2 * 0.30, 4300);
+      cTax = (base2 + tariffJPY) * 0.1;
+    }
+    var total = netJPY + shipJPY + tariffJPY + cTax + DOMESTIC_SHIP;
+    return {
+      tariffRate: tariffRate,
+      tariffJPY: tariffJPY,
+      cTax: cTax,
+      total: total,
+      pMin: sellPrice(total, profMin),
+      pTgt: sellPrice(total, profTgt),
+      p25:  sellPrice(total, 0.25),
+      p30:  sellPrice(total, 0.30),
+      feeMin:    Math.round(sellPrice(total, profMin) * BUYMA_FEE),
+      profitMin: Math.round(sellPrice(total, profMin) * (1 - BUYMA_FEE) - total),
+      feeTgt:    Math.round(sellPrice(total, profTgt) * BUYMA_FEE),
+      profitTgt: Math.round(sellPrice(total, profTgt) * (1 - BUYMA_FEE) - total),
+      fee25:     Math.round(sellPrice(total, 0.25) * BUYMA_FEE),
+      profit25:  Math.round(sellPrice(total, 0.25) * (1 - BUYMA_FEE) - total),
+      fee30:     Math.round(sellPrice(total, 0.30) * BUYMA_FEE),
+      profit30:  Math.round(sellPrice(total, 0.30) * (1 - BUYMA_FEE) - total),
+    };
   }
 
   // 各仕入れ先の計算
@@ -1044,34 +1324,27 @@ function runCalc() {
     var netP     = rawP * (1 - discRate) * (1 - extraD / 100);
     // JPY通貨の場合は為替換算しない（レート=1）
     var isJPY    = sup.currency === 'JPY';
-    var fxCC     = isJPY ? 1 : rCC;
-    var fxCus    = isJPY ? 1 : rCus;
+    // 各仕入れ先は「自分の通貨」に対応する自動取得レートを使う。
+    // 自動取得がまだ済んでいない／その通貨が未対応の場合だけ、
+    // 上部の表示欄（選択中の通貨のレート）にフォールバックする。
+    var fxCC     = isJPY ? 1 : (APP.ccRates[sup.currency] || rCC);
     var netJPY   = netP * fxCC;
 
     // 送料
     var ship = calcShipping(sup, rawP, rCC);
     var shipJPY = ship.cost * fxCC;
 
-    // 関税・消費税
-    var tariffRate = getTariffRate(sup); // null or 数値
-    var tariffJPY  = 0;
-    var cTax       = 0;
-    var isDDP      = sup.ddp;
+    var isDDP = sup.ddp;
+    var cusPair = APP.customsRates[sup.currency]; // {A, B} または未対応通貨ならundefined
 
-    if (isDDP) {
-      cTax = netJPY * 0.1;
-    } else if (tariffRate !== null) {
-      var base  = netP * fxCus + ship.cost * fxCus;
-      tariffJPY = base * (tariffRate / 100);
-      cTax      = (base + tariffJPY) * 0.1;
-    } else {
-      // null = 一般30%/4300円（どちらか高い方）
-      var base2  = netP * fxCus + ship.cost * fxCus;
-      tariffJPY  = Math.max(base2 * 0.30, 4300);
-      cTax       = (base2 + tariffJPY) * 0.1;
-    }
+    // 通関レート（期間A/B）。JPYは換算不要のため常に1、それ以外は手入力値をそのまま使う。
+    var fxCusA = isJPY ? 1 : (cusPair ? cusPair.A : null);
+    var fxCusB = isJPY ? 1 : (cusPair ? cusPair.B : null);
+    var shipCusA = ship.cost * (fxCusA || 0);
+    var shipCusB = ship.cost * (fxCusB || 0);
 
-    var total = netJPY + shipJPY + tariffJPY + cTax + DOMESTIC_SHIP;
+    var periodA = calcPeriod(sup, netP, fxCusA, netJPY, shipCusA, shipJPY, isDDP);
+    var periodB = calcPeriod(sup, netP, fxCusB, netJPY, shipCusB, shipJPY, isDDP);
 
     return {
       key:        key,
@@ -1081,33 +1354,24 @@ function runCalc() {
       discPct:    discRate * 100,
       extraD:     extraD,
       netP:       netP,
+      fxCC:       fxCC,
       netJPY:     netJPY,
       ship:       ship,
       shipJPY:    shipJPY,
       isDDP:      isDDP,
-      tariffRate: tariffRate,
-      tariffJPY:  tariffJPY,
-      cTax:       cTax,
-      total:      total,
-      pMin:       sellPrice(total, profMin),
-      pTgt:       sellPrice(total, profTgt),
-      p25:        sellPrice(total, 0.25),
-      p30:        sellPrice(total, 0.30),
-      feeMin:     Math.round(sellPrice(total, profMin) * BUYMA_FEE),
-      profitMin:  Math.round(sellPrice(total, profMin) * (1 - BUYMA_FEE) - total),
-      feeTgt:     Math.round(sellPrice(total, profTgt) * BUYMA_FEE),
-      profitTgt:  Math.round(sellPrice(total, profTgt) * (1 - BUYMA_FEE) - total),
-      fee25:      Math.round(sellPrice(total, 0.25) * BUYMA_FEE),
-      profit25:   Math.round(sellPrice(total, 0.25) * (1 - BUYMA_FEE) - total),
-      fee30:      Math.round(sellPrice(total, 0.30) * BUYMA_FEE),
-      profit30:   Math.round(sellPrice(total, 0.30) * (1 - BUYMA_FEE) - total),
+      periodA:    periodA,
+      periodB:    periodB,
     };
   }).filter(Boolean);
 
-  var valid   = results.filter(function(r) { return !r.skip; });
-  var minTotal = valid.length > 0
-    ? Math.min.apply(null, valid.map(function(r) { return r.total; }))
-    : null;
+  var valid = results.filter(function(r) { return !r.skip; });
+  var validA = valid.filter(function(r) { return r.periodA !== null; });
+  var validB = valid.filter(function(r) { return r.periodB !== null; });
+  var minTotalA = validA.length > 0 ? Math.min.apply(null, validA.map(function(r) { return r.periodA.total; })) : null;
+  var minTotalB = validB.length > 0 ? Math.min.apply(null, validB.map(function(r) { return r.periodB.total; })) : null;
+
+  var labelA = APP.customsLabels.A || '期間A';
+  var labelB = APP.customsLabels.B || '期間B';
 
   // カード更新
   results.forEach(function(r) {
@@ -1122,40 +1386,52 @@ function runCalc() {
       return;
     }
 
-    var isBest = minTotal !== null && Math.abs(r.total - minTotal) < 1;
-    var diff   = minTotal !== null ? r.total - minTotal : 0;
+    var isBestA = r.periodA !== null && minTotalA !== null && Math.abs(r.periodA.total - minTotalA) < 1;
+    var isBestB = r.periodB !== null && minTotalB !== null && Math.abs(r.periodB.total - minTotalB) < 1;
+    var isBestAny = isBestA || isBestB;
 
-    card.className = 'card' + (isBest ? ' best' : '');
+    card.className = 'card' + (isBestAny ? ' best' : '');
 
     hd.innerHTML = '<span class="card-name">' + escHtml(r.sup.name) + '</span>'
-      + (isBest
-          ? '<span class="badge">★ 最安</span>'
+      + (isBestAny
+          ? '<span class="badge">★ 最安' + (isBestA && isBestB ? '（両期間）' : isBestA ? '（' + labelA + '）' : '（' + labelB + '）') + '</span>'
           : '<span class="tag ' + (r.isDDP ? 'ddp' : 'ddu') + '">' + (r.isDDP ? 'DDP' : 'DDU') + '</span>');
 
-    var tariffLabel = r.isDDP ? '（DDP）'
-      : r.tariffRate !== null ? '（' + r.tariffRate + '%）'
-      : '（一般30%/4,300円）';
+    function periodBlock(p, isBest, label, minTotal) {
+      if (!p) {
+        return '<div class="prices"><div class="prices-t">' + escHtml(label) + '：通関レート未設定</div></div>';
+      }
+      var tariffLabel = r.isDDP ? '（DDP）'
+        : p.tariffRate !== null ? '（' + p.tariffRate + '%）'
+        : '（一般30%/4,300円）';
+      var diff = minTotal !== null ? p.total - minTotal : 0;
+      return '<div class="card-body" style="margin-top:8px;">'
+        + '<div class="prices-t" style="margin-bottom:4px;">' + escHtml(label) + (isBest ? ' ★最安' : '') + '</div>'
+        + row('関税' + tariffLabel, r.isDDP ? '込み' : fmt(p.tariffJPY))
+        + row('消費税 10%', fmt(p.cTax))
+        + '</div>'
+        + '<div class="card-total"><span class="total-lbl">総原価</span><span class="total-val">' + fmt(p.total) + '</span></div>'
+        + '<div class="diff-row">' + (isBest ? '★ 最安値' : (validA.length + validB.length) > 2 ? '＋' + fmt(diff) + ' 高い' : '') + '</div>'
+        + '<div class="prices">'
+        + '<div class="prices-t">推奨販売価格（BUYMA 7.7% 込み）</div>'
+        + prRow('最低（' + Math.round(profMin * 100) + '%）', fmt(p.pMin), false, fmt(p.feeMin), fmt(p.profitMin))
+        + prRow('目標（' + Math.round(profTgt * 100) + '%）', fmt(p.pTgt), true, fmt(p.feeTgt), fmt(p.profitTgt))
+        + prRow('25%', fmt(p.p25), false, fmt(p.fee25), fmt(p.profit25))
+        + prRow('30%', fmt(p.p30), false, fmt(p.fee30), fmt(p.profit30))
+        + '</div>';
+    }
 
     res.innerHTML =
       '<div class="card-body">'
       + row('割引後価格', r.netP.toFixed(2) + ' ' + r.sup.currency)
       + (r.discPct > 0 ? row('店舗割引', '-' + r.discPct.toFixed(1) + '%') : '')
       + (r.extraD  > 0 ? row('追加割引', '-' + r.extraD.toFixed(1)  + '%') : '')
-      + row('円換算 @' + rCC, fmt(r.netJPY))
+      + row('円換算 @' + r.fxCC, fmt(r.netJPY))
       + row('海外送料', r.ship.label + (r.shipJPY > 0 ? '　' + fmt(r.shipJPY) : ''))
-      + row('関税' + tariffLabel, r.isDDP ? '込み' : fmt(r.tariffJPY))
-      + row('消費税 10%', fmt(r.cTax))
-      + row('国内送料', fmt(DOMESTIC_SHIP))
+      + row('国内送料', fmt(1000))
       + '</div>'
-      + '<div class="card-total"><span class="total-lbl">総原価</span><span class="total-val">' + fmt(r.total) + '</span></div>'
-      + '<div class="diff-row">' + (isBest ? '★ 最安値' : valid.length > 1 ? '＋' + fmt(diff) + ' 高い' : '') + '</div>'
-      + '<div class="prices">'
-      + '<div class="prices-t">推奨販売価格（BUYMA 7.7% 込み）</div>'
-      + prRow('最低（' + Math.round(profMin * 100) + '%）', fmt(r.pMin), false, fmt(r.feeMin), fmt(r.profitMin))
-      + prRow('目標（' + Math.round(profTgt * 100) + '%）', fmt(r.pTgt), true, fmt(r.feeTgt), fmt(r.profitTgt))
-      + prRow('25%', fmt(r.p25), false, fmt(r.fee25), fmt(r.profit25))
-      + prRow('30%', fmt(r.p30), false, fmt(r.fee30), fmt(r.profit30))
-      + '</div>';
+      + '<div style="border-top:1px dashed #3a423e;margin-top:4px;">' + periodBlock(r.periodA, isBestA, labelA, minTotalA) + '</div>'
+      + '<div style="border-top:1px dashed #3a423e;margin-top:8px;">' + periodBlock(r.periodB, isBestB, labelB, minTotalB) + '</div>';
   });
 }
 
