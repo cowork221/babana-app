@@ -21,7 +21,9 @@ main{max-width:640px;margin:0 auto;padding:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
 .scanbox{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:none;margin-bottom:10px}
 .scanbox video{width:100%;height:100%;object-fit:cover}
-.scanbox .frame{position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:10px}
+.scanbox .frame{position:absolute;inset:20% 27.5%;border:3px solid rgba(255,255,255,.85);border-radius:10px;transition:border-color .15s,box-shadow .15s}
+.scanbox .frame.hit{border-color:#3ddc84;box-shadow:0 0 0 3px rgba(61,220,132,.35)}
+.shot{display:none;margin-bottom:10px}
 .scanbox .hint{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:13px;text-align:center;padding:8px}
 .readflash{background:var(--okbg);border:2px solid var(--ok);border-radius:10px;padding:10px;margin-top:10px;font-weight:700}
 .row{display:flex;gap:8px;align-items:center}
@@ -68,7 +70,8 @@ input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radiu
 <!-- 出荷 -->
 <section class="page on" id="page-ship">
   <div class="card">
-    <div class="scanbox" id="box-ship"><video id="vid-ship" playsinline muted></video><div class="frame"></div><div class="hint">QRを枠に入れてください。読み取るとカメラは自動で止まります</div></div>
+    <div class="scanbox" id="box-ship"><video id="vid-ship" playsinline muted></video><div class="frame" id="frame-ship"></div><div class="hint" id="hint-ship">読みたいQRを枠に入れて「読み取る」を押してください</div></div>
+    <button class="btn ok big shot" id="shot-ship" onclick="shoot('ship')">◎ 読み取る</button>
     <div class="row">
       <button class="btn p" style="flex:1" id="cam-ship" onclick="toggleCam('ship')">📷 カメラで読む</button>
     </div>
@@ -85,7 +88,8 @@ input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radiu
 <!-- 入荷検品 -->
 <section class="page" id="page-recv">
   <div class="card">
-    <div class="scanbox" id="box-recv"><video id="vid-recv" playsinline muted></video><div class="frame"></div><div class="hint">QRを枠に入れてください。読み取るとカメラは自動で止まります</div></div>
+    <div class="scanbox" id="box-recv"><video id="vid-recv" playsinline muted></video><div class="frame" id="frame-recv"></div><div class="hint" id="hint-recv">読みたいQRを枠に入れて「読み取る」を押してください</div></div>
+    <button class="btn ok big shot" id="shot-recv" onclick="shoot('recv')">◎ 読み取る</button>
     <button class="btn p big" id="cam-recv" onclick="toggleCam('recv')">📷 商品のQRを読む</button>
     <div class="row" style="margin-top:8px">
       <input id="code-recv" placeholder="SKU か JANコード" onkeydown="if(event.key==='Enter')manual('recv')">
@@ -165,45 +169,82 @@ function go(p){
 }
 
 // ===== カメラ（jsQR） =====
-var cam={stream:null,mode:null,raf:null,last:'',lastAt:0,busy:false};
+// 撮影ボタン方式：カメラを向けただけでは確定しない。「読み取る」を押したときに、枠の中のQRだけを読む
+var HINT='読みたいQRを枠に入れて「読み取る」を押してください';
+var cam={stream:null,mode:null,raf:null,busy:false,shooting:false,lastScan:0};
 async function toggleCam(mode){ if(cam.stream&&cam.mode===mode){stopCam();return;} stopCam(); await startCam(mode); }
 async function startCam(mode){
   try{
     var s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    cam.stream=s;cam.mode=mode;
+    cam.stream=s;cam.mode=mode;cam.shooting=false;
     var v=$('vid-'+mode);v.srcObject=s;await v.play();
-    $('box-'+mode).style.display='block';$('cam-'+mode).textContent='■ カメラを止める';
+    $('box-'+mode).style.display='block';$('shot-'+mode).style.display='block';
+    $('cam-'+mode).textContent='■ カメラを止める';
+    $('hint-'+mode).textContent=HINT;$('frame-'+mode).classList.remove('hit');
     tick();
   }catch(e){toast('カメラを起動できません：'+e.message,true);}
 }
 function stopCam(){
   if(cam.raf)cancelAnimationFrame(cam.raf);
   if(cam.stream){cam.stream.getTracks().forEach(function(t){t.stop();});}
-  if(cam.mode){$('box-'+cam.mode).style.display='none';$('cam-'+cam.mode).textContent=cam.mode==='ship'?'📷 カメラで読む':'📷 商品のQRを読む';}
-  cam.stream=null;cam.mode=null;
+  if(cam.mode){
+    var m=cam.mode;
+    $('box-'+m).style.display='none';$('shot-'+m).style.display='none';
+    $('frame-'+m).classList.remove('hit');$('hint-'+m).textContent=HINT;
+    $('cam-'+m).textContent=m==='ship'?'📷 カメラで読む':'📷 商品のQRを読む';
+  }
+  cam.stream=null;cam.mode=null;cam.shooting=false;
 }
+// 画面に見えている枠の範囲だけを切り出して読む（枠の外のQRは読まない）
+function frameData(mode){
+  var v=$('vid-'+mode),box=$('box-'+mode),fr=$('frame-'+mode);
+  if(v.readyState<2)return null;
+  var vw=v.videoWidth,vh=v.videoHeight,W=box.clientWidth,H=box.clientHeight;
+  if(!vw||!vh||!W||!H)return null;
+  var s=Math.max(W/vw,H/vh);               // object-fit:cover の拡大率
+  var offX=(vw*s-W)/2,offY=(vh*s-H)/2;     // はみ出して見えていない部分
+  var sx=(fr.offsetLeft+offX)/s,sy=(fr.offsetTop+offY)/s,sw=fr.offsetWidth/s,sh=fr.offsetHeight/s;
+  var c=$('cv'),k=Math.min(1,480/sw);
+  c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));
+  var ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);
+  return ctx.getImageData(0,0,c.width,c.height);
+}
+function detect(mode){
+  var img=frameData(mode);if(!img)return '';
+  var q=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+  return q&&q.data?q.data.trim():'';
+}
+// 枠の中にQRが入っているかを表示するだけ（ここでは確定しない）
 function tick(){
   if(!cam.stream)return;
-  var v=$('vid-'+cam.mode);
-  if(v.readyState===v.HAVE_ENOUGH_DATA&&!cam.busy){
-    var c=$('cv'),w=v.videoWidth,h=v.videoHeight,sc=Math.min(1,640/w);
-    c.width=w*sc;c.height=h*sc;var ctx=c.getContext('2d');ctx.drawImage(v,0,0,c.width,c.height);
-    var img=ctx.getImageData(0,0,c.width,c.height);
-    var q=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-    if(q&&q.data){
-      var code=q.data.trim(),now=Date.now();
-      // 同じコードを続けて読んでしまうのを防ぐ（2.5秒）
-      if(!(code===cam.last&&now-cam.lastAt<2500)){
-        cam.last=code;cam.lastAt=now;
-        var m=cam.mode;
-        stopCam(); // 1回読んだらすぐカメラを止める（同じQRを2回読まないように）
-        $('res-'+m).innerHTML='<div class="readflash">読み取りました：'+esc(code)+'　処理中…</div>';
-        onCode(m,code);
-        return;
-      }
-    }
+  var now=Date.now();
+  if(now-cam.lastScan>200&&!cam.shooting&&!cam.busy){
+    cam.lastScan=now;
+    var m=cam.mode,code=detect(m);
+    $('frame-'+m).classList.toggle('hit',!!code);
+    $('hint-'+m).textContent=code?('枠の中：'+code+'　→「読み取る」で確定'):HINT;
   }
   cam.raf=requestAnimationFrame(tick);
+}
+// 「読み取る」を押したときだけ確定。手ぶれで読めないときは約1秒だけ読み直す
+function shoot(mode){
+  if(!cam.stream||cam.mode!==mode||cam.shooting||cam.busy)return;
+  cam.shooting=true;
+  var tries=0;
+  (function attempt(){
+    if(!cam.stream||cam.mode!==mode){cam.shooting=false;return;}
+    var code=detect(mode);
+    if(code){
+      stopCam(); // 1回読んだらカメラを止める
+      $('res-'+mode).innerHTML='<div class="readflash">読み取りました：'+esc(code)+'　処理中…</div>';
+      onCode(mode,code);
+      return;
+    }
+    if(++tries<12){setTimeout(attempt,80);return;}
+    cam.shooting=false;beep(false);
+    toast('枠の中にQRが見つかりません。少し近づけるか、ピントを合わせてください',true);
+  })();
 }
 function manual(mode){var v=$('code-'+mode).value.trim();if(v){onCode(mode,v);$('code-'+mode).value='';}}
 function onCode(mode,code){ if(mode==='ship')shipScan(code); else recvScan(code); }
