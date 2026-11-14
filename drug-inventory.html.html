@@ -54,6 +54,9 @@ input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radiu
 .lbl{border:1px dashed #bbb;border-radius:6px;padding:6px;text-align:center;font-size:10px;break-inside:avoid}
 .lbl .qr{display:flex;justify-content:center;margin:4px 0}
 .lbl .code{font-weight:800;font-size:13px}
+.lbl .pick{display:flex;justify-content:center;align-items:center;gap:4px;font-size:11px;margin-bottom:2px}
+.lbl.off{opacity:.35}
+@media print{.lbl.off{display:none!important}.lbl .pick{display:none!important}}
 @media print{header,nav,.noprint{display:none!important}main{padding:0;max-width:none}.page{display:none!important}#page-labels{display:block!important}.card{border:0;padding:0}}
 </style>
 </head>
@@ -115,8 +118,16 @@ input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radiu
     <div class="row" style="margin-top:8px">
       <select id="lblKind" onchange="renderLabels()"><option value="all">すべて</option><option value="items">入荷用（SKU）</option><option value="units">出荷用（販売コード）</option></select>
       <button class="btn g" onclick="loadLabels()">更新</button>
-      <button class="btn p" onclick="window.print()">印刷</button>
+      <button class="btn p" onclick="printLabels()">印刷</button>
     </div>
+    <div class="row" style="margin-top:8px">
+      <input id="lblQ" placeholder="SKU・商品名で絞り込み（例：DS0014）" oninput="renderLabels()">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn g" style="padding:6px 10px;font-size:12px" onclick="pickAll(true)">表示中を全部選ぶ</button>
+      <button class="btn g" style="padding:6px 10px;font-size:12px" onclick="pickAll(false)">全部はずす</button>
+    </div>
+    <div class="muted" style="margin-top:6px">チェックの入ったラベルだけ印刷されます。新しい商品だけ印刷したいときは、「全部はずす」のあと、必要なものにチェックを入れてください。</div>
   </div>
   <div class="card"><div id="labelSheet"></div></div>
 </section>
@@ -355,20 +366,36 @@ async function loadLabels(){
   if(!GAS){$('labelSheet').innerHTML='<div class="muted">未接続です</div>';return;}
   try{LABELS=(await api({action:'labels'})).data;renderLabels();}catch(e){$('labelSheet').innerHTML='<div class="muted">'+esc(e.message)+'</div>';}
 }
+var PICK={};
 function renderLabels(){
   if(!LABELS)return;
-  var k=$('lblKind').value,list=[];
+  var k=$('lblKind').value,list=[],q=(($('lblQ')||{}).value||'').trim().toLowerCase();
   if(k!=='units')list=list.concat(LABELS.items);
   if(k!=='items')list=list.concat(LABELS.units);
+  if(q)list=list.filter(function(l){return (String(l.code)+' '+String(l.sub||'')+' '+String(l.title)).toLowerCase().indexOf(q)>=0;});
   var sh=$('labelSheet');sh.innerHTML='';
+  if(!list.length){sh.innerHTML='<div class="muted">該当するラベルがありません</div>';return;}
   list.forEach(function(l){
-    var d=document.createElement('div');d.className='lbl';
-    d.innerHTML='<div class="muted" style="font-size:9px">'+esc(l.kind)+'</div><div class="qr"></div><div class="code">'+esc(l.code)+'</div>'+(l.sub?'<div style="font-weight:700">'+esc(l.sub)+'</div>':'')+'<div>'+esc(String(l.title).slice(0,28))+'</div>';
+    var on=PICK[l.code]!==false;
+    var d=document.createElement('div');d.className='lbl'+(on?'':' off');
+    d.innerHTML='<label class="pick"><input type="checkbox"'+(on?' checked':'')+'> 印刷する</label><div class="muted" style="font-size:9px">'+esc(l.kind)+'</div><div class="qr"></div><div class="code">'+esc(l.code)+'</div>'+(l.sub?'<div style="font-weight:700">'+esc(l.sub)+'</div>':'')+'<div>'+esc(String(l.title).slice(0,28))+'</div>';
+    d.querySelector('input').addEventListener('change',function(e){PICK[l.code]=e.target.checked;d.classList.toggle('off',!e.target.checked);});
     sh.appendChild(d);
     new QRCode(d.querySelector('.qr'),{text:l.code,width:96,height:96,correctLevel:QRCode.CorrectLevel.M});
   });
 }
-
+function pickAll(v){
+  document.querySelectorAll('#labelSheet .lbl').forEach(function(d){
+    var c=d.querySelector('.code');if(!c)return;PICK[c.textContent]=v;
+    d.classList.toggle('off',!v);var i=d.querySelector('input');if(i)i.checked=v;
+  });
+}
+function printLabels(){
+  if(!document.querySelector('#labelSheet .lbl:not(.off)')){toast('印刷するラベルにチェックを入れてください');return;}
+  var standalone=window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
+  if(standalone){toast('ホーム画面から開くと印刷できません。Safariで開き直すか、Macで印刷してください',true);return;}
+  try{window.print();}catch(e){toast('印刷できませんでした。Safariの共有ボタン →「プリント」を使ってください',true);}
+}
 if(GAS&&KEY){api({action:'init'}).then(function(){$('dot').classList.add('ok');loadRecent();}).catch(function(){});}
 else setTimeout(openGas,300);
 </script>
